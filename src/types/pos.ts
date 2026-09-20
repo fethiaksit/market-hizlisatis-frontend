@@ -1,3 +1,10 @@
+export interface Category {
+  id: string | number;
+  name: string;
+  is_active: boolean;
+  product_count: number;
+}
+
 export interface Product {
   id: string | number;
   barcode: string;
@@ -189,7 +196,7 @@ export interface BulkImportPreviewItem {
 
 export type BulkImportAction = 'SKIP' | 'UPDATE_INFO' | 'ADD_STOCK_ONLY';
 
-export type AdminPage = 'DASHBOARD' | 'PRODUCTS' | 'ADD_PRODUCT' | 'STOCK_ENTRY' | 'BULK_IMPORT' | 'PDF_IMPORT' | 'PRICE_MANAGEMENT';
+export type AdminPage = 'DASHBOARD' | 'CATEGORIES' | 'PRODUCTS' | 'ADD_PRODUCT' | 'STOCK_ENTRY' | 'BULK_IMPORT' | 'PDF_IMPORT' | 'PRICE_MANAGEMENT';
 
 // ==================== INVOICE & PDF IMPORT TYPES ====================
 export type InvoiceMatchStatus = 'matched' | 'new' | 'review_needed' | 'incomplete';
