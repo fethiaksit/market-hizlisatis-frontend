@@ -221,6 +221,7 @@ export const BulkImportView: React.FC = () => {
                   <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Durum</th>
                   <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Barkod</th>
                   <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Ürün Adı</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Kategori</th>
                   <th className="px-4 py-3 text-right text-xs font-bold text-gray-500 uppercase">Satış Fiyatı</th>
                   <th className="px-4 py-3 text-right text-xs font-bold text-gray-500 uppercase">Stok</th>
                   <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase w-1/4">Hata/Bilgi</th>
@@ -240,6 +241,17 @@ export const BulkImportView: React.FC = () => {
                       {item.name || '-'}
                       {item.status === 'EXISTS' && item.existingProduct && item.existingProduct.name !== item.name && (
                         <div className="text-xs text-amber-600 line-through">{item.existingProduct.name}</div>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm">
+                      {item.category ? (
+                        <span className={item.status === 'ERROR' && item.errorMessage?.startsWith('Kategori eşleşmedi')
+                          ? 'font-bold text-red-600'
+                          : 'font-bold text-zeytin-700'}>
+                          {item.category}
+                        </span>
+                      ) : (
+                        <span className="text-gray-400">Kategorisiz</span>
                       )}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm text-right text-gray-900">
