@@ -20,11 +20,17 @@ const STORAGE_AUTH_KEY = 'zeytin_pos_active_cashier';
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [cashier, setCashier] = useState<Cashier | null>(() => {
     const saved = localStorage.getItem(STORAGE_AUTH_KEY);
-    return saved ? JSON.parse(saved) : null;
+    const token = localStorage.getItem('zeytin_pos_token');
+    if (!saved || !token) {
+      localStorage.removeItem(STORAGE_AUTH_KEY);
+      return null;
+    }
+    return JSON.parse(saved);
   });
   const [activeView, setActiveView] = useState<'LOGIN' | 'POS' | 'EOD' | 'ADMIN'>(() => {
     const saved = localStorage.getItem(STORAGE_AUTH_KEY);
-    if (!saved) return 'LOGIN';
+    const token = localStorage.getItem('zeytin_pos_token');
+    if (!saved || !token) return 'LOGIN';
     const c = JSON.parse(saved) as Cashier;
     return c.role === 'admin' ? 'ADMIN' : 'POS';
   });
@@ -57,6 +63,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
+    localStorage.removeItem('zeytin_pos_token');
     setCashier(null);
     setActiveView('LOGIN');
   };
