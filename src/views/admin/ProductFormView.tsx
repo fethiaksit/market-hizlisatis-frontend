@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Category } from '../../types/pos';
 import { posService } from '../../api/posService';
 import { useAuth } from '../../context/AuthContext';
 import { 
@@ -21,6 +22,7 @@ export const ProductFormView: React.FC<Props> = ({ productId, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(isEditing);
   const [error, setError] = useState('');
+  const [categories, setCategories] = useState<Category[]>([]);
   
   const [formData, setFormData] = useState({
     barcode: '',
@@ -33,14 +35,25 @@ export const ProductFormView: React.FC<Props> = ({ productId, onClose }) => {
   });
 
   useEffect(() => {
-    if (isEditing) {
-      loadProduct();
-    }
+    const loadInitial = async () => {
+      setInitialLoading(true);
+      try {
+        const categoryList = await posService.getCategories();
+        setCategories(categoryList);
+        if (isEditing) {
+          await loadProduct();
+        }
+      } catch {
+        setError('Kategori bilgileri yüklenemedi.');
+      } finally {
+        setInitialLoading(false);
+      }
+    };
+    loadInitial();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [productId]);
 
   const loadProduct = async () => {
-    setInitialLoading(true);
     try {
       const products = await posService.getAdminProducts('', true, cashier?.role);
       const product = products.find(p => String(p.id) === String(productId));
@@ -59,8 +72,6 @@ export const ProductFormView: React.FC<Props> = ({ productId, onClose }) => {
       }
     } catch (err) {
       setError('Ürün bilgileri yüklenemedi.');
-    } finally {
-      setInitialLoading(false);
     }
   };
 
@@ -104,6 +115,7 @@ export const ProductFormView: React.FC<Props> = ({ productId, onClose }) => {
         await posService.updateProduct(
           productId!,
           {
+            barcode: formData.barcode,
             name: formData.name,
             price: priceNum,
             purchasePrice: purchasePriceNum,
@@ -251,14 +263,22 @@ export const ProductFormView: React.FC<Props> = ({ productId, onClose }) => {
               <label className="block text-sm font-bold text-gray-700 mb-1">
                 Kategori
               </label>
-              <input
-                type="text"
+              <select
                 name="category"
                 value={formData.category}
                 onChange={handleInputChange}
-                placeholder="Örn: Şarküteri, İçecek..."
                 className="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-gray-900 focus:ring-2 focus:ring-zeytin-500 focus:outline-none transition-colors"
-              />
+              >
+                <option value="">Kategori seçin</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.name}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+              {categories.length === 0 && (
+                <p className="text-xs text-amber-600 mt-1">Önce Kategoriler ekranından kategori ekleyin.</p>
+              )}
             </div>
 
             {/* Birim */}
