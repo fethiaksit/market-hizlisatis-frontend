@@ -736,6 +736,35 @@ export const posService = {
     return mapBackendProduct(product);
   },
 
+  async setProductFavorite(productId: string | number, isFavorite: boolean, role?: string): Promise<Product> {
+    assertAdmin(role);
+    if (isMockMode()) {
+      const products = getStoredProducts();
+      const product = products.find(p => String(p.id) === String(productId));
+      if (!product) throw new Error('Ürün bulunamadı!');
+
+      if (isFavorite && !product.isQuickProduct) {
+        const favoriteCount = products.filter(p => p.isQuickProduct && p.isActive !== false).length;
+        if (favoriteCount >= 10) throw new Error('En fazla 10 favori ürün seçebilirsiniz.');
+        const maxOrder = products.reduce((max, p) => Math.max(max, p.quickOrder || 0), 0);
+        product.quickOrder = maxOrder + 1;
+      } else if (!isFavorite) {
+        product.quickOrder = undefined;
+      }
+
+      product.isQuickProduct = isFavorite;
+      product.updatedAt = new Date().toISOString();
+      saveStoredProducts(products);
+      return product;
+    }
+
+    const product = await apiFetch<BackendProduct>(`/products/${productId}/favorite`, {
+      method: 'PUT',
+      body: JSON.stringify({ isFavorite }),
+    });
+    return mapBackendProduct(product);
+  },
+
   async toggleProductActive(productId: string | number, updatedBy: string, role?: string): Promise<Product> {
     assertAdmin(role);
     if (isMockMode()) {
