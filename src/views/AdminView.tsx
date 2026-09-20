@@ -3,7 +3,8 @@ import { useAuth } from '../context/AuthContext';
 import { AdminPage } from '../types/pos';
 import { 
   ShoppingBag, 
-  PackageSearch, 
+  PackageSearch,
+  FolderTree,
   PackagePlus, 
   Boxes, 
   FileUp, 
@@ -21,6 +22,7 @@ import { StockEntryView } from './admin/StockEntryView';
 import { BulkImportView } from './admin/BulkImportView';
 import { PdfImportView } from './admin/PdfImportView';
 import { PriceManagementView } from './admin/PriceManagementView';
+import { CategoriesView } from './admin/CategoriesView';
 
 export const AdminView: React.FC = () => {
   const { cashier, logout, goToPos, goToEod } = useAuth();
@@ -77,6 +79,16 @@ export const AdminView: React.FC = () => {
           >
             <PackageSearch className="w-4 h-4" />
             <span>Ürünler</span>
+          </button>
+
+          <button
+            onClick={() => setActivePage('CATEGORIES')}
+            className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
+              activePage === 'CATEGORIES' ? 'bg-zeytin-800 text-white' : 'text-zeytin-200 hover:bg-zeytin-800/50'
+            }`}
+          >
+            <FolderTree className="w-4 h-4" />
+            <span>Kategoriler</span>
           </button>
           
           <button
@@ -174,6 +186,9 @@ export const AdminView: React.FC = () => {
         )}
         {activePage === 'PRODUCTS' && (
           <ProductsListView onEditProduct={handleEditProduct} onNewProduct={handleNewProduct} />
+        )}
+        {activePage === 'CATEGORIES' && (
+          <CategoriesView />
         )}
         {activePage === 'ADD_PRODUCT' && (
           <ProductFormView 
