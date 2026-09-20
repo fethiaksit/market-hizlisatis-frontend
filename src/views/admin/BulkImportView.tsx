@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { BulkImportPreviewItem, BulkImportAction } from '../../types/pos';
+import React, { useEffect, useState, useRef } from 'react';
+import { BulkImportPreviewItem, BulkImportAction, Category } from '../../types/pos';
 import { posService } from '../../api/posService';
 import { useAuth } from '../../context/AuthContext';
 import { 
@@ -22,8 +22,15 @@ export const BulkImportView: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [categories, setCategories] = useState<Category[]>([]);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    posService.getCategories()
+      .then(setCategories)
+      .catch(() => setErrorMsg('Kategoriler yüklenemedi. Önce kategori bağlantısını kontrol edin.'));
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setErrorMsg('');
@@ -50,7 +57,7 @@ export const BulkImportView: React.FC = () => {
     reader.onload = (e) => {
       try {
         const text = e.target?.result as string;
-        const items = posService.previewBulkImport(text);
+        const items = posService.previewBulkImport(text, categories);
         if (items.length === 0) {
           setErrorMsg('Dosya boş veya formatı hatalı. Lütfen örnek şablona uygun dosya yükleyin.');
         } else {
@@ -196,7 +203,7 @@ export const BulkImportView: React.FC = () => {
 
               <button
                 onClick={handleExecuteImport}
-                disabled={loading || stats.error === stats.total}
+                disabled={loading || stats.error > 0}
                 className="bg-zeytin-600 hover:bg-zeytin-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-5 py-2 rounded-lg font-bold flex items-center space-x-2 shadow-md transition-colors shrink-0"
               >
                 <Play className="w-4 h-4" fill="currentColor" />
