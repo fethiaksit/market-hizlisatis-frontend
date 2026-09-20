@@ -213,12 +213,8 @@ export interface BulkImportPreviewItem {
 
 export type BulkImportAction = 'SKIP' | 'UPDATE_INFO' | 'ADD_STOCK_ONLY';
 
-<<<<<<< HEAD
-export type AdminPage = 'DASHBOARD' | 'CATEGORIES' | 'PRODUCTS' | 'ADD_PRODUCT' | 'STOCK_ENTRY' | 'BULK_IMPORT' | 'PDF_IMPORT' | 'PRICE_MANAGEMENT';
-=======
-export type AdminPage = 'DASHBOARD' | 'PRODUCTS' | 'ADD_PRODUCT' | 'STOCK_ENTRY' | 'BULK_IMPORT' | 'PDF_IMPORT' | 'PRICE_MANAGEMENT' | 'EMPLOYEES';
+export type AdminPage = 'DASHBOARD' | 'CATEGORIES' | 'PRODUCTS' | 'ADD_PRODUCT' | 'STOCK_ENTRY' | 'BULK_IMPORT' | 'PDF_IMPORT' | 'PRICE_MANAGEMENT' | 'EMPLOYEES';
 
->>>>>>> 1957110 (Personel yonetimi ve gercek kullanici sistemi eklendi)
 
 // ==================== INVOICE & PDF IMPORT TYPES ====================
 export type InvoiceMatchStatus = 'matched' | 'new' | 'review_needed' | 'incomplete';
