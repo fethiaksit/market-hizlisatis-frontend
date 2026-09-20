@@ -102,6 +102,7 @@ type BackendProduct = {
   barcode?: string;
   name: string;
   price: number;
+  purchasePrice?: number;
   stock: number;
   category?: string;
   is_bestseller?: boolean;
@@ -116,6 +117,7 @@ function mapBackendProduct(product: BackendProduct): Product {
     barcode: product.barcode || '',
     name: product.name,
     price: Number(product.price || 0),
+    purchasePrice: product.purchasePrice !== undefined ? Number(product.purchasePrice) : undefined,
     stock: Number(product.stock || 0),
     unit: 'Adet',
     category: product.category || '',
@@ -656,6 +658,7 @@ export const posService = {
         name: data.name,
         barcode: data.barcode,
         price: data.price,
+        purchasePrice: data.purchasePrice ?? 0,
         stock: data.stock || 0,
         category: data.category || '',
         brand: '',
@@ -720,6 +723,7 @@ export const posService = {
         name: data.name,
         barcode: data.barcode,
         price: data.price,
+        purchasePrice: data.purchasePrice ?? 0,
         stock: 0,
         category: data.category || '',
         brand: '',
