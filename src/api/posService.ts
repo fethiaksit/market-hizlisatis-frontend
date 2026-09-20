@@ -982,11 +982,10 @@ export const posService = {
 
   // ==================== ADMIN: BULK IMPORT ====================
 
-  previewBulkImport(csvText: string, categories: Category[] = []): BulkImportPreviewItem[] {
+  previewBulkImport(csvText: string, categories: Category[] = [], products: Product[] = []): BulkImportPreviewItem[] {
     const lines = csvText.trim().split('\n');
     if (lines.length < 2) return [];
 
-    const products = getStoredProducts();
     const results: BulkImportPreviewItem[] = [];
 
     // Skip header row
