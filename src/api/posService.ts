@@ -94,8 +94,8 @@ function saveStoredPriceHistory(history: PriceHistory[]) {
 
 // Role check helper — simulates backend authorization
 function assertAdmin(role?: string) {
-  if (role && role !== 'admin') {
-    throw new Error('Bu işlem için yönetici yetkisi gereklidir. (403 Forbidden)');
+  if (role && role !== 'admin' && role !== 'warehouse') {
+    throw new Error('Bu işlem için yönetici veya depo yetkisi gereklidir. (403 Forbidden)');
   }
 }
 
@@ -128,6 +128,29 @@ function mapBackendProduct(product: BackendProduct): Product {
     isActive: true,
     createdAt: product.created_at,
     updatedAt: product.updated_at,
+  };
+}
+
+function mapBackendStockMovementToFrontend(m: any): StockMovement {
+  const typeMap: Record<string, StockMovementType> = {
+    'in': 'STOCK_IN',
+    'out': 'SALE',
+    'waste': 'STOCK_OUT',
+    'correction': 'MANUAL_ADJUSTMENT',
+  };
+  return {
+    id: String(m.id || ''),
+    productId: m.product_id || m.productId || 0,
+    productName: m.product?.name || m.productName || '',
+    barcode: m.product?.barcode || m.barcode || '',
+    quantity: typeof m.quantity === 'string' ? parseFloat(m.quantity) : Number(m.quantity || 0),
+    movementType: typeMap[m.type] || (m.movementType as StockMovementType) || 'STOCK_IN',
+    previousStock: typeof m.previousStock === 'string' ? parseFloat(m.previousStock) : Number(m.previousStock || 0),
+    newStock: typeof m.newStock === 'string' ? parseFloat(m.newStock) : Number(m.newStock || 0),
+    referenceId: m.referenceId || '',
+    note: m.note || '',
+    createdAt: m.movement_date || m.created_at || m.createdAt || '',
+    createdBy: m.createdBy || 'Sistem',
   };
 }
 
@@ -258,9 +281,14 @@ export const posService = {
 
   // ==================== CUSTOMERS (CARİLER) ====================
 
-  async getCustomers(query = ''): Promise<Customer[]> {
+  // ==================== CUSTOMERS (CARİLER) ====================
+
+  async getCustomers(query = '', showInactive = false): Promise<Customer[]> {
     if (isMockMode()) {
-      const customers = getStoredCustomers();
+      let customers = getStoredCustomers();
+      if (!showInactive) {
+        customers = customers.filter(c => c.is_active !== false);
+      }
       if (!query.trim()) return customers;
       const q = query.toLowerCase().trim();
       return customers.filter(c => 
@@ -269,9 +297,24 @@ export const posService = {
       );
     }
 
-    // Cari backend entegrasyonu henüz bu serviste bulunmuyor.
-    // Production ortamında demo müşteri göstermeyelim.
-    return [];
+    const params = new URLSearchParams();
+    if (query.trim()) params.append('q', query.trim());
+    if (showInactive) params.append('is_active', 'all');
+
+    const list = await apiFetch<any[]>(`/customers?${params.toString()}`);
+    const items = Array.isArray(list) ? list : [];
+    return items.map(c => ({
+      id: c.id,
+      name: c.name || '',
+      phone: c.phone || '',
+      address: c.address || '',
+      note: c.note || '',
+      is_active: c.is_active ?? true,
+      credit_limit: c.credit_limit ? Number(c.credit_limit) : null,
+      balance: Number(c.balance || 0),
+      createdAt: c.created_at,
+      updatedAt: c.updated_at,
+    }));
   },
 
   async getCustomerTransactions(
@@ -296,11 +339,21 @@ export const posService = {
     }
 
     const params = new URLSearchParams();
-    if (filters?.startDate) params.append('startDate', filters.startDate);
-    if (filters?.endDate) params.append('endDate', filters.endDate);
-    if (filters?.type && filters.type !== 'ALL') params.append('type', filters.type);
+    params.append('customer_id', String(customerId));
 
-    return await apiFetch<CustomerTransaction[]>(`/pos/customers/${customerId}/transactions?${params.toString()}`);
+    const list = await apiFetch<any[]>(`/customer-transactions?${params.toString()}`);
+    const items = Array.isArray(list) ? list : [];
+    return items.map(t => ({
+      id: String(t.id),
+      customerId: t.customer_id,
+      type: t.type === 'debt' ? 'SALE' : t.type === 'payment' ? 'PAYMENT' : t.type,
+      amount: Number(t.amount || 0),
+      balanceAfter: Number(t.balance_after || 0),
+      date: t.transaction_date ? t.transaction_date.split('T')[0] : '',
+      time: t.created_at ? new Date(t.created_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }) : '',
+      createdAt: t.created_at || new Date().toISOString(),
+      note: t.note || '',
+    }));
   },
 
   async getSaleDetail(saleIdOrReceiptNo: string | number): Promise<SaleRecord | null> {
@@ -317,7 +370,7 @@ export const posService = {
     }
   },
 
-  async createCustomer(data: { name: string; phone?: string; note?: string }): Promise<Customer> {
+  async createCustomer(data: { name: string; phone?: string; note?: string; address?: string; is_active?: boolean; credit_limit?: number | null }): Promise<Customer> {
     const cleanPhone = (data.phone || '').trim();
     if (isMockMode()) {
       const customers = getStoredCustomers();
@@ -334,8 +387,11 @@ export const posService = {
         id: `CUST-${Date.now()}`,
         name: data.name.trim(),
         phone: cleanPhone,
+        address: data.address || '',
         balance: 0,
         note: data.note?.trim() || '',
+        is_active: data.is_active ?? true,
+        credit_limit: data.credit_limit || null,
         createdAt: new Date().toISOString(),
       };
 
@@ -344,9 +400,70 @@ export const posService = {
       return newCustomer;
     }
 
-    return await apiFetch<Customer>('/pos/customers', {
+    const c = await apiFetch<any>('/customers', {
       method: 'POST',
       body: JSON.stringify(data),
+    });
+    return {
+      id: c.id,
+      name: c.name || '',
+      phone: c.phone || '',
+      address: c.address || '',
+      note: c.note || '',
+      is_active: c.is_active ?? true,
+      credit_limit: c.credit_limit ? Number(c.credit_limit) : null,
+      balance: Number(c.balance || 0),
+      createdAt: c.created_at,
+      updatedAt: c.updated_at,
+    };
+  },
+
+  async updateCustomer(id: string | number, data: { name: string; phone?: string; note?: string; address?: string; is_active?: boolean; credit_limit?: number | null }): Promise<Customer> {
+    if (isMockMode()) {
+      const customers = getStoredCustomers();
+      const customer = customers.find(c => String(c.id) === String(id));
+      if (!customer) throw new Error('Cari bulunamadı');
+      customer.name = data.name;
+      customer.phone = data.phone || '';
+      customer.note = data.note || '';
+      customer.address = data.address || '';
+      if (data.is_active !== undefined) customer.is_active = data.is_active;
+      if (data.credit_limit !== undefined) customer.credit_limit = data.credit_limit;
+      saveStoredCustomers(customers);
+      return customer;
+    }
+
+    const c = await apiFetch<any>(`/customers/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+    return {
+      id: c.id,
+      name: c.name || '',
+      phone: c.phone || '',
+      address: c.address || '',
+      note: c.note || '',
+      is_active: c.is_active ?? true,
+      credit_limit: c.credit_limit ? Number(c.credit_limit) : null,
+      balance: Number(c.balance || 0),
+      createdAt: c.created_at,
+      updatedAt: c.updated_at,
+    };
+  },
+
+  async deleteCustomer(id: string | number): Promise<void> {
+    if (isMockMode()) {
+      const customers = getStoredCustomers();
+      const customer = customers.find(c => String(c.id) === String(id));
+      if (customer) {
+        customer.is_active = false;
+        saveStoredCustomers(customers);
+      }
+      return;
+    }
+
+    await apiFetch(`/customers/${id}`, {
+      method: 'DELETE',
     });
   },
 
@@ -396,9 +513,15 @@ export const posService = {
       return newTx;
     }
 
-    return await apiFetch<CustomerTransaction>(`/pos/customers/${data.customerId}/payments`, {
+    return await apiFetch<CustomerTransaction>(`/customer-transactions`, {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify({
+        customer_id: Number(data.customerId),
+        type: 'payment',
+        amount: data.amount,
+        transaction_date: new Date().toISOString().split('T')[0],
+        note: data.note || (data.paymentMethod === 'CASH' ? 'Nakit Cari Tahsilat' : 'Kredi Kartı Cari Tahsilat'),
+      }),
     });
   },
 
@@ -935,10 +1058,30 @@ export const posService = {
       return movement;
     }
 
-    return await apiFetch<StockMovement>('/admin/stock-movements', {
+    const today = new Date().toISOString().split('T')[0];
+    const backendTypeMap: Record<string, string> = {
+      'STOCK_IN': 'in',
+      'STOCK_OUT': 'out',
+      'MANUAL_ADJUSTMENT': 'correction',
+      'ADJUSTMENT': 'correction',
+      'WASTE': 'waste',
+      'RETURN': 'in',
+    };
+    const type = backendTypeMap[movementType] || 'in';
+    const body = {
+      product_id: Number(productId),
+      movement_date: today,
+      type,
+      quantity: Number(quantity),
+      unit_price: 0,
+      note: note || '',
+    };
+
+    const res = await apiFetch<any>('/stock-movements', {
       method: 'POST',
-      body: JSON.stringify({ productId, quantity, movementType, note, createdBy }),
+      body: JSON.stringify(body),
     });
+    return mapBackendStockMovementToFrontend(res);
   },
 
   async getStockMovements(productId?: string | number, role?: string): Promise<StockMovement[]> {
@@ -951,8 +1094,9 @@ export const posService = {
       return movements;
     }
 
-    const params = productId ? `?productId=${productId}` : '';
-    return await apiFetch<StockMovement[]>(`/admin/stock-movements${params}`);
+    const params = productId ? `?product_id=${productId}` : '';
+    const res = await apiFetch<any[]>(`/stock-movements${params}`);
+    return Array.isArray(res) ? res.map(mapBackendStockMovementToFrontend) : [];
   },
 
   async bulkStockEntry(entries: Array<{
@@ -998,10 +1142,21 @@ export const posService = {
       return results;
     }
 
-    return await apiFetch<StockMovement[]>('/admin/stock-movements/bulk', {
+    const today = new Date().toISOString().split('T')[0];
+    const formattedEntries = entries.map(e => ({
+      product_id: Number(e.productId),
+      movement_date: today,
+      type: 'in',
+      quantity: Number(e.quantity),
+      unit_price: 0,
+      note: e.note || 'Toplu stok girişi',
+    }));
+
+    const res = await apiFetch<any[]>('/stock-movements/bulk', {
       method: 'POST',
-      body: JSON.stringify({ entries, createdBy }),
+      body: JSON.stringify({ entries: formattedEntries }),
     });
+    return Array.isArray(res) ? res.map(mapBackendStockMovementToFrontend) : [];
   },
 
   // ==================== ADMIN: PRICE MANAGEMENT ====================

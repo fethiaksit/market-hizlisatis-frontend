@@ -33,9 +33,14 @@ export interface Customer {
   id: string | number;
   name: string;
   phone: string;
+  address?: string;
+  customer_type?: string;
   balance: number; // Pozitif bakiye = müşterinin borcu
   note?: string;
+  is_active?: boolean;
+  credit_limit?: number | null;
   createdAt?: string;
+  updatedAt?: string;
 }
 
 export type CustomerTransactionType = 'SALE' | 'PAYMENT' | 'RETURN';
@@ -169,7 +174,7 @@ export interface SaleRecord {
 
 // ==================== ADMIN PANEL TYPES ====================
 
-export type StockMovementType = 'STOCK_IN' | 'SALE' | 'RETURN' | 'MANUAL_ADJUSTMENT';
+export type StockMovementType = 'STOCK_IN' | 'STOCK_OUT' | 'SALE' | 'RETURN' | 'MANUAL_ADJUSTMENT' | 'WASTE';
 
 export interface StockMovement {
   id: string;
@@ -213,7 +218,7 @@ export interface BulkImportPreviewItem {
 
 export type BulkImportAction = 'SKIP' | 'UPDATE_INFO' | 'ADD_STOCK_ONLY';
 
-export type AdminPage = 'DASHBOARD' | 'CATEGORIES' | 'PRODUCTS' | 'ADD_PRODUCT' | 'STOCK_ENTRY' | 'BULK_IMPORT' | 'PDF_IMPORT' | 'PRICE_MANAGEMENT' | 'EMPLOYEES';
+export type AdminPage = 'DASHBOARD' | 'CATEGORIES' | 'PRODUCTS' | 'ADD_PRODUCT' | 'STOCK_ENTRY' | 'BULK_IMPORT' | 'PDF_IMPORT' | 'PRICE_MANAGEMENT' | 'EMPLOYEES' | 'CUSTOMERS';
 
 
 // ==================== INVOICE & PDF IMPORT TYPES ====================

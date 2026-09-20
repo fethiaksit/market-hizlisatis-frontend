@@ -14,7 +14,8 @@ import {
   Store,
   FileSpreadsheet,
   LayoutDashboard,
-  Users
+  Users,
+  Contact
 } from 'lucide-react';
 import { DashboardView } from './admin/DashboardView';
 import { ProductsListView } from './admin/ProductsListView';
@@ -25,6 +26,7 @@ import { PdfImportView } from './admin/PdfImportView';
 import { PriceManagementView } from './admin/PriceManagementView';
 import { CategoriesView } from './admin/CategoriesView';
 import { EmployeesManagementView } from './admin/EmployeesManagementView';
+import { CustomersManagementView } from './admin/CustomersManagementView';
 
 
 export const AdminView: React.FC = () => {
@@ -125,8 +127,18 @@ export const AdminView: React.FC = () => {
           </button>
 
           <div className="text-[10px] font-bold text-zeytin-400 uppercase tracking-wider mb-2 mt-6 px-3">
-            Personel & Yetki
+            Müşteri & Personel
           </div>
+          <button
+            onClick={() => setActivePage('CUSTOMERS')}
+            className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
+              activePage === 'CUSTOMERS' ? 'bg-zeytin-800 text-white' : 'text-zeytin-200 hover:bg-zeytin-800/50'
+            }`}
+          >
+            <Contact className="w-4 h-4 text-emerald-400" />
+            <span>Cari Müşteriler</span>
+          </button>
+
           <button
             onClick={() => setActivePage('EMPLOYEES')}
             className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
@@ -220,6 +232,9 @@ export const AdminView: React.FC = () => {
         )}
         {activePage === 'EMPLOYEES' && (
           <EmployeesManagementView />
+        )}
+        {activePage === 'CUSTOMERS' && (
+          <CustomersManagementView />
         )}
         {activePage === 'PDF_IMPORT' && (
           <PdfImportView />
