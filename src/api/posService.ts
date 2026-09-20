@@ -983,44 +983,75 @@ export const posService = {
   // ==================== ADMIN: BULK IMPORT ====================
 
   previewBulkImport(csvText: string, categories: Category[] = [], products: Product[] = []): BulkImportPreviewItem[] {
-    const lines = csvText.trim().split('\n');
+    const lines = csvText.trim().split(/\r?\n/);
     if (lines.length < 2) return [];
 
     const results: BulkImportPreviewItem[] = [];
 
-    // Skip header row
+    const normalizeHeader = (value: string) =>
+      value
+        .replace(/^\uFEFF/, '')
+        .trim()
+        .toLocaleLowerCase('tr-TR')
+        .replace(/\s+/g, '_');
+
+    const headers = lines[0].split(';').map(normalizeHeader);
+    const indexOfAny = (...names: string[]) =>
+      headers.findIndex(h => names.map(normalizeHeader).includes(h));
+
+    const barcodeIndex = indexOfAny('barkod', 'barcode');
+    const nameIndex = indexOfAny('ürün_adı', 'urun_adi', 'ürün adı', 'urun adi', 'name');
+    const priceIndex = indexOfAny('satış_fiyatı', 'satis_fiyati', 'satış fiyatı', 'satis fiyati', 'price');
+    const purchasePriceVatIndex = indexOfAny(
+      'alış_fiyatı_kdv_dahil',
+      'alis_fiyati_kdv_dahil',
+      'alış fiyatı kdv dahil',
+      'alis fiyati kdv dahil'
+    );
+    const purchasePriceIndex = indexOfAny('alış_fiyatı', 'alis_fiyati', 'alış fiyatı', 'alis fiyati', 'purchase_price');
+    const stockIndex = indexOfAny('stok', 'stock');
+    const categoryIndex = indexOfAny('kategori', 'category');
+    const unitIndex = indexOfAny('birim', 'unit');
+
+    if (barcodeIndex < 0 || nameIndex < 0 || priceIndex < 0) {
+      return [];
+    }
+
+    const normalizeCategory = (value: string) =>
+      value
+        .trim()
+        .replace(/^["']|["']$/g, '')
+        .replace(/\u00a0/g, ' ')
+        .toLocaleLowerCase('tr-TR')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/ı/g, 'i')
+        .replace(/ç/g, 'c')
+        .replace(/ğ/g, 'g')
+        .replace(/ö/g, 'o')
+        .replace(/ş/g, 's')
+        .replace(/ü/g, 'u')
+        .replace(/\s+/g, ' ');
+
     for (let i = 1; i < lines.length; i++) {
       const line = lines[i].trim();
       if (!line) continue;
 
-      const cols = line.split(';').map(c => c.trim());
-      // Expected: barkod;ürün_adı;satış_fiyatı;alış_fiyatı;stok;kategori;birim
-      const barcode = cols[0] || '';
-      const name = cols[1] || '';
-      const priceStr = cols[2] || '';
-      const purchasePriceStr = cols[3] || '';
-      const stockStr = cols[4] || '';
-      const rawCategory = cols[5] || '';
-      const normalizeCategory = (value: string) =>
-        value
-          .trim()
-          .replace(/^["']|["']$/g, '')
-          .replace(/\u00a0/g, ' ')
-          .toLocaleLowerCase('tr-TR')
-          .normalize('NFD')
-          .replace(/[\u0300-\u036f]/g, '')
-          .replace(/ı/g, 'i')
-          .replace(/ç/g, 'c')
-          .replace(/ğ/g, 'g')
-          .replace(/ö/g, 'o')
-          .replace(/ş/g, 's')
-          .replace(/ü/g, 'u')
-          .replace(/\s+/g, ' ');
+      const cols = line.split(';').map(col => col.trim());
+      const read = (index: number) => index >= 0 ? (cols[index] || '') : '';
+
+      const barcode = read(barcodeIndex);
+      const name = read(nameIndex);
+      const priceStr = read(priceIndex);
+      // KDV dahil alış fiyatı varsa onu kullan; yoksa standart alış fiyatına düş.
+      const purchasePriceStr = read(purchasePriceVatIndex) || read(purchasePriceIndex);
+      const stockStr = read(stockIndex);
+      const rawCategory = read(categoryIndex);
       const matchedCategory = categories.find(
-        c => normalizeCategory(c.name) === normalizeCategory(rawCategory)
+        category => normalizeCategory(category.name) === normalizeCategory(rawCategory)
       );
       const category = matchedCategory?.name || rawCategory;
-      const unit = cols[6] || 'Adet';
+      const unit = read(unitIndex) || 'Adet';
 
       const item: BulkImportPreviewItem = {
         lineNumber: i + 1,
@@ -1034,7 +1065,6 @@ export const posService = {
         status: 'NEW',
       };
 
-      // Validation
       if (!barcode) {
         item.status = 'ERROR';
         item.errorMessage = 'Barkod boş olamaz';
@@ -1064,17 +1094,20 @@ export const posService = {
       item.price = price;
 
       if (purchasePriceStr) {
-        const pp = parseFloat(purchasePriceStr.replace(',', '.'));
-        if (!isNaN(pp) && pp > 0) item.purchasePrice = pp;
+        const purchasePrice = parseFloat(purchasePriceStr.replace(',', '.'));
+        if (!isNaN(purchasePrice) && purchasePrice > 0) {
+          item.purchasePrice = purchasePrice;
+        }
       }
 
       if (stockStr) {
-        const st = parseInt(stockStr, 10);
-        if (!isNaN(st) && st >= 0) item.stock = st;
+        const stock = parseFloat(stockStr.replace(',', '.'));
+        if (!isNaN(stock) && stock >= 0) {
+          item.stock = stock;
+        }
       }
 
-      // Check if barcode already exists
-      const existing = products.find(p => p.barcode === barcode);
+      const existing = products.find(product => product.barcode === barcode);
       if (existing) {
         item.status = 'EXISTS';
         item.existingProduct = existing;
