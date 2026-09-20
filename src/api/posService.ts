@@ -1,6 +1,13 @@
+<<<<<<< HEAD
 import { Product, Category, Cashier, Customer, CustomerTransaction, CustomerTransactionType, SalePayload, SaleResponse, EndOfDaySummary, SaleRecord, StockMovement, StockMovementType, PriceHistory, BulkImportPreviewItem } from '../types/pos';
 import { INITIAL_PRODUCTS, INITIAL_CASHIERS, INITIAL_SALES, INITIAL_CUSTOMERS, INITIAL_TRANSACTIONS, INITIAL_STOCK_MOVEMENTS, INITIAL_PRICE_HISTORY } from './mockData';
+=======
+import { Product, Employee, Customer, CustomerTransaction, CustomerTransactionType, SalePayload, SaleResponse, EndOfDaySummary, SaleRecord, StockMovement, StockMovementType, PriceHistory, BulkImportPreviewItem } from '../types/pos';
+import { INITIAL_PRODUCTS, INITIAL_SALES, INITIAL_CUSTOMERS, INITIAL_TRANSACTIONS, INITIAL_STOCK_MOVEMENTS, INITIAL_PRICE_HISTORY } from './mockData';
+>>>>>>> 1957110 (Personel yonetimi ve gercek kullanici sistemi eklendi)
 import { apiFetch, isMockMode } from './apiClient';
+
+
 
 const STORAGE_PRODUCTS_KEY = 'zeytin_pos_products';
 const STORAGE_SALES_KEY = 'zeytin_pos_sales';
@@ -130,8 +137,9 @@ function mapBackendProduct(product: BackendProduct): Product {
 }
 
 export const posService = {
-  // ==================== CASHIER / AUTH ====================
+  // ==================== CASHIER / EMPLOYEE / AUTH ====================
 
+<<<<<<< HEAD
   async loginWithPin(pin: string): Promise<Cashier | null> {
     if (isMockMode()) {
       await new Promise(r => setTimeout(r, 150));
@@ -159,15 +167,136 @@ export const posService = {
       };
     } catch {
       return null;
+=======
+  async login(usernameOrPhone: string, password: string): Promise<{ token: string; user: Employee }> {
+    const res = await apiFetch<{ token: string; user: any }>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({
+        username: usernameOrPhone,
+        phone: usernameOrPhone,
+        password,
+      }),
+    });
+    if (res.token) {
+      localStorage.setItem('zeytin_pos_token', res.token);
+>>>>>>> 1957110 (Personel yonetimi ve gercek kullanici sistemi eklendi)
     }
+    const emp: Employee = {
+      id: res.user.id,
+      firstName: res.user.first_name || '',
+      lastName: res.user.last_name || '',
+      fullName: res.user.full_name || `${res.user.first_name || ''} ${res.user.last_name || ''}`.trim() || res.user.username,
+      username: res.user.username,
+      phone: res.user.phone || '',
+      role: res.user.role,
+      isActive: res.user.is_active ?? true,
+      lastLoginAt: res.user.last_login_at,
+      createdAt: res.user.created_at,
+    };
+    return { token: res.token, user: emp };
   },
 
+<<<<<<< HEAD
   async getCashiers(): Promise<Cashier[]> {
     if (isMockMode()) {
       return INITIAL_CASHIERS.filter(c => c.role === 'cashier');
     }
     return [];
+=======
+  async getEmployees(): Promise<Employee[]> {
+    const res = await apiFetch<any[]>('/admin/employees');
+    return res.map(u => ({
+      id: u.id,
+      firstName: u.first_name || '',
+      lastName: u.last_name || '',
+      fullName: u.full_name || `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.username,
+      username: u.username,
+      phone: u.phone || '',
+      role: u.role,
+      isActive: u.is_active ?? true,
+      lastLoginAt: u.last_login_at,
+      createdAt: u.created_at,
+    }));
+>>>>>>> 1957110 (Personel yonetimi ve gercek kullanici sistemi eklendi)
   },
+
+  async createEmployee(data: {
+    first_name: string;
+    last_name: string;
+    phone: string;
+    username: string;
+    password: string;
+    confirm_password: string;
+    role: string;
+    is_active: boolean;
+  }): Promise<Employee> {
+    const res = await apiFetch<any>('/admin/employees', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return {
+      id: res.id,
+      firstName: res.first_name,
+      lastName: res.last_name,
+      fullName: res.full_name,
+      username: res.username,
+      phone: res.phone,
+      role: res.role,
+      isActive: res.is_active,
+      lastLoginAt: res.last_login_at,
+      createdAt: res.created_at,
+    };
+  },
+
+  async updateEmployee(id: number | string, data: {
+    first_name: string;
+    last_name: string;
+    phone: string;
+    username: string;
+    role: string;
+    is_active: boolean;
+  }): Promise<Employee> {
+    const res = await apiFetch<any>(`/admin/employees/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+    return {
+      id: res.id,
+      firstName: res.first_name,
+      lastName: res.last_name,
+      fullName: res.full_name,
+      username: res.username,
+      phone: res.phone,
+      role: res.role,
+      isActive: res.is_active,
+      lastLoginAt: res.last_login_at,
+      createdAt: res.created_at,
+    };
+  },
+
+  async updateEmployeeStatus(id: number | string, isActive: boolean): Promise<void> {
+    await apiFetch(`/admin/employees/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ is_active: isActive }),
+    });
+  },
+
+  async resetEmployeePassword(id: number | string, password: string, confirmPassword: string): Promise<void> {
+    await apiFetch(`/admin/employees/${id}/password`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        password,
+        confirm_password: confirmPassword,
+      }),
+    });
+  },
+
+  async deleteEmployee(id: number | string): Promise<void> {
+    await apiFetch(`/admin/employees/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
 
   // ==================== CUSTOMERS (CARİLER) ====================
 

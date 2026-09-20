@@ -1,175 +1,153 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Lock, ArrowRight, Delete } from 'lucide-react';
+import { Lock, User, KeyRound, ArrowRight, ShieldCheck } from 'lucide-react';
 import { PosAudio } from '../utils/format';
 
 export const LoginView: React.FC = () => {
-  const { loginWithPin } = useAuth();
+  const { login } = useAuth();
   
-  const [pin, setPin] = useState('');
+  const [usernameOrPhone, setUsernameOrPhone] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Handle physical keyboard input
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key >= '0' && e.key <= '9') {
-        if (pin.length < 4) {
-          setPin(prev => prev + e.key);
-          setError('');
-          PosAudio.playScanBeep();
-        }
-      } else if (e.key === 'Backspace') {
-        setPin(prev => prev.slice(0, -1));
-        setError('');
-        PosAudio.playScanBeep();
-      } else if (e.key === 'Enter') {
-        if (pin.length === 4) {
-          submitPin(pin);
-        }
-      }
-    };
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [pin]);
-
-  const submitPin = async (submittedPin: string) => {
-    if (submittedPin.length < 4) {
-      setError('Lütfen 4 haneli PIN kodunu girin.');
+    if (!usernameOrPhone.trim()) {
+      setError('Lütfen kullanıcı adı veya telefon numaranızı girin.');
       PosAudio.playErrorTone();
       return;
     }
 
-    const { success, message } = await loginWithPin(submittedPin);
-    if (!success) {
-      setError(message || 'Giriş yapılamadı.');
-      setPin('');
+    if (!password) {
+      setError('Lütfen şifrenizi girin.');
       PosAudio.playErrorTone();
-    } else {
-      PosAudio.playSuccessChime();
+      return;
     }
-  };
 
-  const handleNumClick = (num: string) => {
-    if (pin.length < 4) {
-      setPin(prev => prev + num);
-      setError('');
-      PosAudio.playScanBeep();
+    setIsLoading(true);
+    try {
+      const { success, message } = await login(usernameOrPhone.trim(), password);
+      if (!success) {
+        setError(message || 'Giriş yapılamadı. Kullanıcı adı veya şifre hatalı.');
+        PosAudio.playErrorTone();
+      } else {
+        PosAudio.playSuccessChime();
+      }
+    } catch {
+      setError('Bağlantı hatası oluştu. Lütfen tekrar deneyiniz.');
+      PosAudio.playErrorTone();
+    } finally {
+      setIsLoading(false);
     }
-  };
-
-  const handleClear = () => {
-    setPin('');
-    setError('');
-    PosAudio.playScanBeep();
-  };
-
-  const handleBackspace = () => {
-    setPin(prev => prev.slice(0, -1));
-    setError('');
-    PosAudio.playScanBeep();
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    submitPin(pin);
   };
 
   return (
-    <div className="h-screen w-screen bg-gradient-to-br from-zeytin-800 to-zeytin-950 flex flex-col justify-center items-center p-4 font-sans select-none overflow-hidden relative">
-      {/* Brand & Store Name */}
+    <div className="h-screen w-screen bg-gradient-to-br from-zeytin-900 via-zeytin-950 to-black flex flex-col justify-center items-center p-4 font-sans select-none overflow-hidden relative">
+      {/* Top Header Logo */}
       <div className="absolute top-6 left-0 right-0 flex justify-center items-center px-6">
         <div className="flex items-center space-x-3">
-          <div className="bg-zeytin-600 p-2.5 rounded-xl shadow-inner">
-            <Lock className="w-6 h-6 text-white" />
+          <div className="bg-zeytin-600 p-2.5 rounded-xl shadow-lg border border-zeytin-500/30">
+            <ShieldCheck className="w-6 h-6 text-white" />
           </div>
           <div>
             <h1 className="text-2xl font-black tracking-wide text-white">
               ZEYTİN MARKET
             </h1>
             <p className="text-xs text-zeytin-300 font-medium">
-              Sistem Girişi
+              Hızlı Satış & Otomasyon Sistemi
             </p>
           </div>
         </div>
       </div>
 
       {/* Main Login Card */}
-      <div className="max-w-md w-full mx-auto bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 mt-12">
+      <div className="max-w-md w-full mx-auto bg-white/10 backdrop-blur-xl border border-white/15 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 mt-8">
         <div className="text-center space-y-1">
-          <div className="w-14 h-14 bg-zeytin-600 text-white rounded-2xl flex items-center justify-center mx-auto shadow-md mb-3">
+          <div className="w-14 h-14 bg-zeytin-600 text-white rounded-2xl flex items-center justify-center mx-auto shadow-lg mb-3 border border-zeytin-400/30">
             <Lock className="w-7 h-7" />
           </div>
-          <h2 className="text-2xl font-black text-white">Sisteme Giriş</h2>
+          <h2 className="text-2xl font-black text-white">Personel Girişi</h2>
           <p className="text-xs text-zeytin-200">
-            Devam etmek için PIN kodunuzu girin
+            Devam etmek için kullanıcı bilgilerinizi giriniz
           </p>
         </div>
 
-        {/* PIN Dots display */}
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="flex justify-center items-center space-x-3 h-12 bg-black/30 rounded-2xl border border-white/15 px-4">
-            {Array.from({ length: 4 }).map((_, idx) => (
-              <div
-                key={idx}
-                className={`w-4 h-4 rounded-full transition-all ${
-                  idx < pin.length
-                    ? 'bg-zeytin-400 scale-125 shadow-md shadow-zeytin-400/50'
-                    : 'bg-white/20'
-                }`}
+          {/* Username / Phone Input */}
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-zeytin-200 block">
+              Kullanıcı Adı veya Telefon
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-zeytin-300">
+                <User className="w-5 h-5" />
+              </div>
+              <input
+                type="text"
+                value={usernameOrPhone}
+                onChange={(e) => {
+                  setUsernameOrPhone(e.target.value);
+                  setError('');
+                }}
+                placeholder="Örn: admin veya 05XXXXXXXXX"
+                disabled={isLoading}
+                className="w-full pl-11 pr-4 py-3.5 bg-black/30 text-white border border-white/15 rounded-2xl focus:outline-none focus:ring-2 focus:ring-zeytin-400 focus:border-transparent text-sm transition-all placeholder:text-gray-400"
+                autoComplete="username"
+                autoFocus
               />
-            ))}
+            </div>
           </div>
 
+          {/* Password Input */}
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-zeytin-200 block">
+              Şifre
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-zeytin-300">
+                <KeyRound className="w-5 h-5" />
+              </div>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  setError('');
+                }}
+                placeholder="••••••••"
+                disabled={isLoading}
+                className="w-full pl-11 pr-4 py-3.5 bg-black/30 text-white border border-white/15 rounded-2xl focus:outline-none focus:ring-2 focus:ring-zeytin-400 focus:border-transparent text-sm transition-all placeholder:text-gray-400"
+                autoComplete="current-password"
+              />
+            </div>
+          </div>
+
+          {/* Error Message */}
           {error && (
-            <p className="text-xs text-red-400 font-bold text-center animate-shake">
-              {error}
-            </p>
+            <div className="p-3 bg-red-500/20 border border-red-500/40 rounded-xl text-center">
+              <p className="text-xs text-red-300 font-bold">
+                {error}
+              </p>
+            </div>
           )}
-
-          {/* Touch Numpad */}
-          <div className="grid grid-cols-3 gap-2.5 pt-1">
-            {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((num) => (
-              <button
-                key={num}
-                type="button"
-                onClick={() => handleNumClick(num)}
-                className="h-14 bg-white/10 hover:bg-white/25 active:bg-white/40 border border-white/10 rounded-2xl text-2xl font-black text-white transition-all cursor-pointer shadow-sm active:scale-95 flex items-center justify-center"
-              >
-                {num}
-              </button>
-            ))}
-            <button
-              type="button"
-              onClick={handleClear}
-              className="h-14 bg-red-950/40 hover:bg-red-900/50 active:bg-red-800/60 border border-red-500/20 rounded-2xl text-xs font-black text-red-200 transition-all cursor-pointer active:scale-95 flex items-center justify-center uppercase"
-            >
-              Temizle
-            </button>
-            <button
-              type="button"
-              onClick={() => handleNumClick('0')}
-              className="h-14 bg-white/10 hover:bg-white/25 active:bg-white/40 border border-white/10 rounded-2xl text-2xl font-black text-white transition-all cursor-pointer shadow-sm active:scale-95 flex items-center justify-center"
-            >
-              0
-            </button>
-            <button
-              type="button"
-              onClick={handleBackspace}
-              className="h-14 bg-white/10 hover:bg-white/25 active:bg-white/40 border border-white/10 rounded-2xl text-white transition-all cursor-pointer active:scale-95 flex items-center justify-center"
-              title="Sil"
-            >
-              <Delete className="w-6 h-6" />
-            </button>
-          </div>
 
           {/* Submit Button */}
           <button
             type="submit"
-            className="w-full py-4 bg-zeytin-600 hover:bg-zeytin-500 active:bg-zeytin-700 text-white font-black text-lg rounded-2xl shadow-xl transition-all cursor-pointer flex items-center justify-center space-x-2 border border-zeytin-400"
+            disabled={isLoading}
+            className="w-full py-4 bg-zeytin-600 hover:bg-zeytin-500 active:bg-zeytin-700 text-white font-black text-base rounded-2xl shadow-xl transition-all cursor-pointer flex items-center justify-center space-x-2 border border-zeytin-400/30 disabled:opacity-50"
           >
-            <span>GİRİŞ YAP</span>
-            <ArrowRight className="w-5 h-5" />
+            {isLoading ? (
+              <span className="text-sm">Giriş Yapılıyor...</span>
+            ) : (
+              <>
+                <span>GİRİŞ YAP</span>
+                <ArrowRight className="w-5 h-5" />
+              </>
+            )}
           </button>
         </form>
       </div>
@@ -177,7 +155,7 @@ export const LoginView: React.FC = () => {
       {/* Footer Info */}
       <div className="absolute bottom-6 left-0 right-0 text-center text-xs text-gray-400 flex flex-col items-center justify-center space-y-1">
         <span>ZeytinERP v2.4 • Hızlı Satış & Yönetim POS</span>
-        <span className="text-zeytin-300">Kasiyer: 1234 • Yönetici: 9999</span>
+        <span className="text-zeytin-400 text-[11px]">Sisteme sadece yetkili personeller giriş yapabilir.</span>
       </div>
     </div>
   );

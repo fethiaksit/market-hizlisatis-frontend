@@ -72,13 +72,30 @@ export interface KasaState {
   note?: string;
 }
 
+export type UserRole = 'admin' | 'cashier' | 'warehouse' | string;
+
+export interface Employee {
+  id: number | string;
+  firstName: string;
+  lastName: string;
+  fullName: string;
+  username: string;
+  phone: string;
+  role: UserRole;
+  isActive: boolean;
+  lastLoginAt?: string | null;
+  createdAt?: string;
+}
+
 export interface Cashier {
   id: string | number;
   name: string;
-  code: string;
-  pin: string; // 4-digit PIN
-  role: 'cashier' | 'admin';
+  username?: string;
+  code?: string;
+  phone?: string;
+  role: UserRole;
 }
+
 
 export interface SaleItemRecord {
   productId: string | number;
@@ -196,7 +213,12 @@ export interface BulkImportPreviewItem {
 
 export type BulkImportAction = 'SKIP' | 'UPDATE_INFO' | 'ADD_STOCK_ONLY';
 
+<<<<<<< HEAD
 export type AdminPage = 'DASHBOARD' | 'CATEGORIES' | 'PRODUCTS' | 'ADD_PRODUCT' | 'STOCK_ENTRY' | 'BULK_IMPORT' | 'PDF_IMPORT' | 'PRICE_MANAGEMENT';
+=======
+export type AdminPage = 'DASHBOARD' | 'PRODUCTS' | 'ADD_PRODUCT' | 'STOCK_ENTRY' | 'BULK_IMPORT' | 'PDF_IMPORT' | 'PRICE_MANAGEMENT' | 'EMPLOYEES';
+
+>>>>>>> 1957110 (Personel yonetimi ve gercek kullanici sistemi eklendi)
 
 // ==================== INVOICE & PDF IMPORT TYPES ====================
 export type InvoiceMatchStatus = 'matched' | 'new' | 'review_needed' | 'incomplete';

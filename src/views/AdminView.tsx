@@ -13,7 +13,8 @@ import {
   LogOut, 
   Store,
   FileSpreadsheet,
-  LayoutDashboard
+  LayoutDashboard,
+  Users
 } from 'lucide-react';
 import { DashboardView } from './admin/DashboardView';
 import { ProductsListView } from './admin/ProductsListView';
@@ -22,7 +23,11 @@ import { StockEntryView } from './admin/StockEntryView';
 import { BulkImportView } from './admin/BulkImportView';
 import { PdfImportView } from './admin/PdfImportView';
 import { PriceManagementView } from './admin/PriceManagementView';
+<<<<<<< HEAD
 import { CategoriesView } from './admin/CategoriesView';
+=======
+import { EmployeesManagementView } from './admin/EmployeesManagementView';
+>>>>>>> 1957110 (Personel yonetimi ve gercek kullanici sistemi eklendi)
 
 export const AdminView: React.FC = () => {
   const { cashier, logout, goToPos, goToEod } = useAuth();
@@ -122,6 +127,19 @@ export const AdminView: React.FC = () => {
           </button>
 
           <div className="text-[10px] font-bold text-zeytin-400 uppercase tracking-wider mb-2 mt-6 px-3">
+            Personel & Yetki
+          </div>
+          <button
+            onClick={() => setActivePage('EMPLOYEES')}
+            className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
+              activePage === 'EMPLOYEES' ? 'bg-zeytin-800 text-white' : 'text-zeytin-200 hover:bg-zeytin-800/50'
+            }`}
+          >
+            <Users className="w-4 h-4 text-amber-400" />
+            <span>Personel Yönetimi</span>
+          </button>
+
+          <div className="text-[10px] font-bold text-zeytin-400 uppercase tracking-wider mb-2 mt-6 px-3">
             Toplu İşlemler
           </div>
           <button
@@ -199,17 +217,19 @@ export const AdminView: React.FC = () => {
         {activePage === 'STOCK_ENTRY' && (
           <StockEntryView />
         )}
+        {activePage === 'PRICE_MANAGEMENT' && (
+          <PriceManagementView />
+        )}
+        {activePage === 'EMPLOYEES' && (
+          <EmployeesManagementView />
+        )}
         {activePage === 'PDF_IMPORT' && (
           <PdfImportView />
         )}
         {activePage === 'BULK_IMPORT' && (
           <BulkImportView />
         )}
-        {activePage === 'PRICE_MANAGEMENT' && (
-          <PriceManagementView />
-        )}
       </main>
     </div>
   );
 };
-

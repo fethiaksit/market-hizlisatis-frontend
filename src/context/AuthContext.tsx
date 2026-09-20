@@ -1,11 +1,12 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Cashier } from '../types/pos';
+
 import { posService } from '../api/posService';
 
 interface AuthContextType {
   cashier: Cashier | null;
   activeView: 'LOGIN' | 'POS' | 'EOD' | 'ADMIN';
-  loginWithPin: (pin: string) => Promise<{ success: boolean; message?: string }>;
+  login: (usernameOrPhone: string, password: string) => Promise<{ success: boolean; message?: string }>;
   logout: () => void;
   goToEod: () => void;
   goToLogin: () => void;
@@ -16,6 +17,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const STORAGE_AUTH_KEY = 'zeytin_pos_active_cashier';
+const STORAGE_TOKEN_KEY = 'zeytin_pos_token';
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [cashier, setCashier] = useState<Cashier | null>(() => {
@@ -41,21 +43,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setActiveView(cashier.role === 'admin' ? 'ADMIN' : 'POS');
     } else {
       localStorage.removeItem(STORAGE_AUTH_KEY);
+      localStorage.removeItem(STORAGE_TOKEN_KEY);
       if (activeView !== 'LOGIN') {
         setActiveView('LOGIN');
       }
     }
   }, [cashier]);
 
-  const loginWithPin = async (pin: string): Promise<{ success: boolean; message?: string }> => {
+  const login = async (usernameOrPhone: string, password: string): Promise<{ success: boolean; message?: string }> => {
     try {
-      const foundCashier = await posService.loginWithPin(pin);
-      if (foundCashier) {
-        setCashier(foundCashier);
-        setActiveView(foundCashier.role === 'admin' ? 'ADMIN' : 'POS');
+      const { user } = await posService.login(usernameOrPhone, password);
+      if (user) {
+        const cashierObj: Cashier = {
+          id: user.id,
+          name: user.fullName || `${user.firstName} ${user.lastName}`.trim() || user.username,
+          username: user.username,
+          phone: user.phone,
+          role: user.role,
+        };
+        setCashier(cashierObj);
+        setActiveView(user.role === 'admin' ? 'ADMIN' : 'POS');
         return { success: true };
       }
-      return { success: false, message: 'Hatalı PIN Kodu! Lütfen kontrol ediniz.' };
+      return { success: false, message: 'Giriş yapılamadı. Kullanıcı bulunamadı.' };
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Giriş yapılamadı.';
       return { success: false, message: msg };
@@ -65,6 +75,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = () => {
     localStorage.removeItem('zeytin_pos_token');
     setCashier(null);
+    localStorage.removeItem(STORAGE_AUTH_KEY);
+    localStorage.removeItem(STORAGE_TOKEN_KEY);
     setActiveView('LOGIN');
   };
 
@@ -74,7 +86,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const goToPos = () => setActiveView('POS');
 
   return (
-    <AuthContext.Provider value={{ cashier, activeView, loginWithPin, logout, goToEod, goToLogin, goToAdmin, goToPos }}>
+    <AuthContext.Provider value={{ cashier, activeView, login, logout, goToEod, goToLogin, goToAdmin, goToPos }}>
       {children}
     </AuthContext.Provider>
   );

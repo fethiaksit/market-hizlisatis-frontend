@@ -1,11 +1,5 @@
-import { Product, Cashier, SaleRecord, Customer, CustomerTransaction, StockMovement, PriceHistory } from '../types/pos';
+import { Product, SaleRecord, Customer, CustomerTransaction, StockMovement, PriceHistory } from '../types/pos';
 
-export const INITIAL_CASHIERS: Cashier[] = [
-  { id: '1', name: 'Ahmet Demir', code: 'KAS-01', pin: '1234', role: 'cashier' },
-  { id: '2', name: 'Ayşe Yılmaz', code: 'KAS-02', pin: '2345', role: 'cashier' },
-  { id: '3', name: 'Mustafa Kaya', code: 'KAS-03', pin: '3456', role: 'cashier' },
-  { id: 'admin', name: 'Mağaza Müdürü', code: 'MGR-01', pin: '9999', role: 'admin' },
-];
 
 export const INITIAL_CUSTOMERS: Customer[] = [
   { id: '101', name: 'Ahmet Yılmaz', phone: '0532 111 22 33', balance: 1350.00, note: 'Mahalle esnafı', createdAt: '2026-09-01T08:00:00Z' },
