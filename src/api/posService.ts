@@ -97,6 +97,36 @@ function assertAdmin(role?: string) {
   }
 }
 
+type BackendProduct = {
+  id: string | number;
+  barcode?: string;
+  name: string;
+  price: number;
+  stock: number;
+  category?: string;
+  is_bestseller?: boolean;
+  bestseller_order?: number;
+  created_at?: string;
+  updated_at?: string;
+};
+
+function mapBackendProduct(product: BackendProduct): Product {
+  return {
+    id: product.id,
+    barcode: product.barcode || '',
+    name: product.name,
+    price: Number(product.price || 0),
+    stock: Number(product.stock || 0),
+    unit: 'Adet',
+    category: product.category || '',
+    isQuickProduct: Boolean(product.is_bestseller),
+    quickOrder: product.bestseller_order || undefined,
+    isActive: true,
+    createdAt: product.created_at,
+    updatedAt: product.updated_at,
+  };
+}
+
 export const posService = {
   // ==================== CASHIER / AUTH ====================
 
@@ -108,14 +138,23 @@ export const posService = {
     }
 
     try {
-      const res = await apiFetch<{ success: boolean; user: Cashier; token?: string }>('/pos/login', {
+      const res = await apiFetch<{
+        token: string;
+        user: { id: string | number; username: string; role: 'cashier' | 'admin' };
+      }>('/auth/login', {
         method: 'POST',
-        body: JSON.stringify({ pin }),
+        body: JSON.stringify({ username: 'posadmin', password: pin }),
       });
-      if (res.token) {
-        localStorage.setItem('zeytin_token', res.token);
-      }
-      return res.user;
+
+      localStorage.setItem('zeytin_pos_token', res.token);
+
+      return {
+        id: res.user.id,
+        name: res.user.username,
+        code: res.user.username,
+        pin: '',
+        role: res.user.role,
+      };
     } catch {
       return null;
     }
@@ -125,11 +164,7 @@ export const posService = {
     if (isMockMode()) {
       return INITIAL_CASHIERS.filter(c => c.role === 'cashier');
     }
-    try {
-      return await apiFetch<Cashier[]>('/pos/cashiers');
-    } catch {
-      return INITIAL_CASHIERS.filter(c => c.role === 'cashier');
-    }
+    return [];
   },
 
   // ==================== CUSTOMERS (CARİLER) ====================
@@ -145,11 +180,9 @@ export const posService = {
       );
     }
 
-    try {
-      return await apiFetch<Customer[]>(`/pos/customers?q=${encodeURIComponent(query)}`);
-    } catch {
-      return getStoredCustomers();
-    }
+    // Cari backend entegrasyonu henüz bu serviste bulunmuyor.
+    // Production ortamında demo müşteri göstermeyelim.
+    return [];
   },
 
   async getCustomerTransactions(
@@ -284,32 +317,32 @@ export const posService = {
 
   async getAllProducts(): Promise<Product[]> {
     if (isMockMode()) {
-      // POS tarafı sadece aktif ürünleri görür
       return getStoredProducts().filter(p => p.isActive !== false);
     }
-    try {
-      return await apiFetch<Product[]>('/pos/products');
-    } catch {
-      return getStoredProducts().filter(p => p.isActive !== false);
-    }
+
+    const products = await apiFetch<BackendProduct[]>('/products');
+    return products.map(mapBackendProduct);
   },
 
   async findProductByBarcode(barcode: string): Promise<Product | null> {
-    const cleanBarcode = barcode.trim().toLowerCase();
+    const cleanBarcode = barcode.trim();
     if (isMockMode()) {
       const products = getStoredProducts().filter(p => p.isActive !== false);
-      const product = products.find(p => 
-        p.barcode.toLowerCase() === cleanBarcode ||
-        p.name.toLowerCase() === cleanBarcode
-      );
-      return product || null;
+      const lowered = cleanBarcode.toLowerCase();
+      return products.find(p =>
+        p.barcode.toLowerCase() === lowered ||
+        p.name.toLowerCase() === lowered
+      ) || null;
     }
 
     try {
-      return await apiFetch<Product>(`/pos/products/find?barcode=${encodeURIComponent(cleanBarcode)}`);
-    } catch {
-      const products = getStoredProducts().filter(p => p.isActive !== false);
-      return products.find(p => p.barcode.toLowerCase() === cleanBarcode) || null;
+      const product = await apiFetch<BackendProduct>(`/products/barcode/${encodeURIComponent(cleanBarcode)}`);
+      return mapBackendProduct(product);
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('404')) {
+        return null;
+      }
+      throw error;
     }
   },
 
@@ -419,10 +452,37 @@ export const posService = {
       };
     }
 
-    return await apiFetch<SaleResponse>('/pos/sales', {
+    const paymentMethodMap: Record<SalePayload['paymentType'], string> = {
+      CASH: 'cash',
+      CARD: 'card',
+      CREDIT: 'current',
+    };
+
+    const sale = await apiFetch<{
+      id: string | number;
+      sale_no: string;
+      total_amount: number;
+      items?: Array<{ quantity: number }>;
+    }>('/sales', {
       method: 'POST',
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        payment_method: paymentMethodMap[payload.paymentType],
+        items: payload.items.map(item => ({
+          product_id: Number(item.productId),
+          barcode: item.barcode,
+          quantity: item.quantity,
+        })),
+      }),
     });
+
+    return {
+      success: true,
+      saleId: sale.id,
+      receiptNo: sale.sale_no,
+      message: 'Satış başarıyla tamamlandı',
+      total: Number(sale.total_amount || 0),
+      itemsCount: (sale.items || []).reduce((sum, item) => sum + Number(item.quantity || 0), 0),
+    };
   },
 
   // ==================== END OF DAY ====================
