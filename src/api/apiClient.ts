@@ -1,5 +1,6 @@
-// Configurable API Client with LocalStorage persistence & Fallback to Mock
-const DEFAULT_API_URL = 'http://localhost:8000/api';
+// Production defaults to the same-origin nginx /api proxy.
+// Mock mode is opt-in only; production must never silently show demo data.
+const DEFAULT_API_URL = '/api';
 
 export const getApiBaseUrl = (): string => {
   return localStorage.getItem('zeytin_pos_api_url') || DEFAULT_API_URL;
@@ -10,8 +11,7 @@ export const setApiBaseUrl = (url: string): void => {
 };
 
 export const isMockMode = (): boolean => {
-  const mode = localStorage.getItem('zeytin_pos_use_mock');
-  return mode === null ? true : mode === 'true';
+  return localStorage.getItem('zeytin_pos_use_mock') === 'true';
 };
 
 export const setMockMode = (enabled: boolean): void => {
