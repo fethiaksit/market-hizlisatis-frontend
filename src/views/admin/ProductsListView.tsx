@@ -9,7 +9,8 @@ import {
   Power, 
   PowerOff,
   PackageSearch,
-  Filter
+  Filter,
+  Star
 } from 'lucide-react';
 
 interface Props {
@@ -47,6 +48,15 @@ export const ProductsListView: React.FC<Props> = ({ onEditProduct, onNewProduct 
       console.error('Failed to load products:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleToggleFavorite = async (product: Product) => {
+    try {
+      await posService.setProductFavorite(product.id, !product.isQuickProduct, cashier?.role);
+      await loadProducts();
+    } catch (err) {
+      alert('Favori durumu değiştirilemedi: ' + (err instanceof Error ? err.message : String(err)));
     }
   };
 
@@ -202,6 +212,18 @@ export const ProductsListView: React.FC<Props> = ({ onEditProduct, onNewProduct 
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end space-x-2">
+                        <button
+                          onClick={() => handleToggleFavorite(product)}
+                          className={`p-1.5 rounded-lg transition-colors ${
+                            product.isQuickProduct
+                              ? 'text-amber-500 bg-amber-50 hover:bg-amber-100'
+                              : 'text-gray-400 hover:text-amber-500 hover:bg-amber-50'
+                          }`}
+                          title={product.isQuickProduct ? 'Favoriden Çıkar' : 'Favoriye Ekle'}
+                        >
+                          <Star className={`w-4 h-4 ${product.isQuickProduct ? 'fill-current' : ''}`} />
+                        </button>
+
                         <button
                           onClick={() => onEditProduct(product.id)}
                           className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
