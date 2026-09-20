@@ -36,8 +36,24 @@ export async function apiFetch<T>(endpoint: string, options: RequestInit = {}): 
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || errorData.detail || `API Hatası: ${response.status} ${response.statusText}`);
+    const errorMessage =
+      errorData.error ||
+      errorData.message ||
+      errorData.detail ||
+      `API Hatası: ${response.status} ${response.statusText}`;
+    throw new Error(errorMessage);
   }
 
-  return response.json();
+  const json = await response.json();
+
+  if (
+    json &&
+    typeof json === 'object' &&
+    'success' in json &&
+    'data' in json
+  ) {
+    return json.data as T;
+  }
+
+  return json as T;
 }

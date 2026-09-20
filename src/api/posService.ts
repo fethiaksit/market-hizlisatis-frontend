@@ -163,7 +163,8 @@ export const posService = {
 
   async getEmployees(): Promise<Employee[]> {
     const res = await apiFetch<any[]>('/admin/employees');
-    return res.map(u => ({
+    const list = Array.isArray(res) ? res : [];
+    return list.map(u => ({
       id: u.id,
       firstName: u.first_name || '',
       lastName: u.last_name || '',
@@ -601,7 +602,21 @@ export const posService = {
       };
     }
 
-    return await apiFetch<EndOfDaySummary>('/pos/eod-summary');
+    const res = await apiFetch<any>('/dashboard');
+    const today = new Date().toISOString().split('T')[0];
+    const isClosed = localStorage.getItem(STORAGE_EOD_KEY) === today;
+
+    return {
+      date: today,
+      totalRevenue: Number(res?.today_revenue || 0),
+      totalCash: Number(res?.total_cash || res?.daily_cash_revenue || 0),
+      totalCard: Number(res?.total_pos || 0),
+      totalCredit: Number(res?.total_employee_debt || 0),
+      transactionCount: Array.isArray(res?.recent_transactions) ? res.recent_transactions.length : 0,
+      cancelledCount: 0,
+      isClosed,
+      sales: [],
+    };
   },
 
   async closeEndOfDay(userRole?: string): Promise<{ success: boolean; message: string }> {
