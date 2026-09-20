@@ -23,11 +23,9 @@ import { StockEntryView } from './admin/StockEntryView';
 import { BulkImportView } from './admin/BulkImportView';
 import { PdfImportView } from './admin/PdfImportView';
 import { PriceManagementView } from './admin/PriceManagementView';
-<<<<<<< HEAD
 import { CategoriesView } from './admin/CategoriesView';
-=======
 import { EmployeesManagementView } from './admin/EmployeesManagementView';
->>>>>>> 1957110 (Personel yonetimi ve gercek kullanici sistemi eklendi)
+
 
 export const AdminView: React.FC = () => {
   const { cashier, logout, goToPos, goToEod } = useAuth();
