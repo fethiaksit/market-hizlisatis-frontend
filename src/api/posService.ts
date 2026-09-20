@@ -1,10 +1,5 @@
-<<<<<<< HEAD
-import { Product, Category, Cashier, Customer, CustomerTransaction, CustomerTransactionType, SalePayload, SaleResponse, EndOfDaySummary, SaleRecord, StockMovement, StockMovementType, PriceHistory, BulkImportPreviewItem } from '../types/pos';
-import { INITIAL_PRODUCTS, INITIAL_CASHIERS, INITIAL_SALES, INITIAL_CUSTOMERS, INITIAL_TRANSACTIONS, INITIAL_STOCK_MOVEMENTS, INITIAL_PRICE_HISTORY } from './mockData';
-=======
-import { Product, Employee, Customer, CustomerTransaction, CustomerTransactionType, SalePayload, SaleResponse, EndOfDaySummary, SaleRecord, StockMovement, StockMovementType, PriceHistory, BulkImportPreviewItem } from '../types/pos';
+import { Product, Category, Employee, Customer, CustomerTransaction, CustomerTransactionType, SalePayload, SaleResponse, EndOfDaySummary, SaleRecord, StockMovement, StockMovementType, PriceHistory, BulkImportPreviewItem } from '../types/pos';
 import { INITIAL_PRODUCTS, INITIAL_SALES, INITIAL_CUSTOMERS, INITIAL_TRANSACTIONS, INITIAL_STOCK_MOVEMENTS, INITIAL_PRICE_HISTORY } from './mockData';
->>>>>>> 1957110 (Personel yonetimi ve gercek kullanici sistemi eklendi)
 import { apiFetch, isMockMode } from './apiClient';
 
 
@@ -139,35 +134,6 @@ function mapBackendProduct(product: BackendProduct): Product {
 export const posService = {
   // ==================== CASHIER / EMPLOYEE / AUTH ====================
 
-<<<<<<< HEAD
-  async loginWithPin(pin: string): Promise<Cashier | null> {
-    if (isMockMode()) {
-      await new Promise(r => setTimeout(r, 150));
-      const cashier = INITIAL_CASHIERS.find(c => c.pin === pin);
-      return cashier || null;
-    }
-
-    try {
-      const res = await apiFetch<{
-        token: string;
-        user: { id: string | number; username: string; role: 'cashier' | 'admin' };
-      }>('/auth/login', {
-        method: 'POST',
-        body: JSON.stringify({ username: 'posadmin', password: pin }),
-      });
-
-      localStorage.setItem('zeytin_pos_token', res.token);
-
-      return {
-        id: res.user.id,
-        name: res.user.username,
-        code: res.user.username,
-        pin: '',
-        role: res.user.role,
-      };
-    } catch {
-      return null;
-=======
   async login(usernameOrPhone: string, password: string): Promise<{ token: string; user: Employee }> {
     const res = await apiFetch<{ token: string; user: any }>('/auth/login', {
       method: 'POST',
@@ -179,7 +145,6 @@ export const posService = {
     });
     if (res.token) {
       localStorage.setItem('zeytin_pos_token', res.token);
->>>>>>> 1957110 (Personel yonetimi ve gercek kullanici sistemi eklendi)
     }
     const emp: Employee = {
       id: res.user.id,
@@ -196,13 +161,6 @@ export const posService = {
     return { token: res.token, user: emp };
   },
 
-<<<<<<< HEAD
-  async getCashiers(): Promise<Cashier[]> {
-    if (isMockMode()) {
-      return INITIAL_CASHIERS.filter(c => c.role === 'cashier');
-    }
-    return [];
-=======
   async getEmployees(): Promise<Employee[]> {
     const res = await apiFetch<any[]>('/admin/employees');
     return res.map(u => ({
@@ -217,7 +175,6 @@ export const posService = {
       lastLoginAt: u.last_login_at,
       createdAt: u.created_at,
     }));
->>>>>>> 1957110 (Personel yonetimi ve gercek kullanici sistemi eklendi)
   },
 
   async createEmployee(data: {
