@@ -3,6 +3,7 @@
 const DEFAULT_API_URL = '/api';
 
 export const getApiBaseUrl = (): string => {
+  if (!import.meta.env.DEV) return DEFAULT_API_URL;
   return localStorage.getItem('zeytin_pos_api_url') || DEFAULT_API_URL;
 };
 
@@ -11,6 +12,7 @@ export const setApiBaseUrl = (url: string): void => {
 };
 
 export const isMockMode = (): boolean => {
+  if (!import.meta.env.DEV) return false;
   return localStorage.getItem('zeytin_pos_use_mock') === 'true';
 };
 
