@@ -1,4 +1,4 @@
-import { Product, Cashier, Customer, CustomerTransaction, CustomerTransactionType, SalePayload, SaleResponse, EndOfDaySummary, SaleRecord, StockMovement, StockMovementType, PriceHistory, BulkImportPreviewItem } from '../types/pos';
+import { Product, Category, Cashier, Customer, CustomerTransaction, CustomerTransactionType, SalePayload, SaleResponse, EndOfDaySummary, SaleRecord, StockMovement, StockMovementType, PriceHistory, BulkImportPreviewItem } from '../types/pos';
 import { INITIAL_PRODUCTS, INITIAL_CASHIERS, INITIAL_SALES, INITIAL_CUSTOMERS, INITIAL_TRANSACTIONS, INITIAL_STOCK_MOVEMENTS, INITIAL_PRICE_HISTORY } from './mockData';
 import { apiFetch, isMockMode } from './apiClient';
 
@@ -531,6 +531,35 @@ export const posService = {
     });
   },
 
+  // ==================== CATEGORIES ====================
+
+  async getCategories(): Promise<Category[]> {
+    if (isMockMode()) {
+      const names = Array.from(new Set(getStoredProducts().map(p => p.category).filter(Boolean))) as string[];
+      return names.sort((a, b) => a.localeCompare(b, 'tr-TR')).map((name, index) => ({
+        id: index + 1,
+        name,
+        is_active: true,
+        product_count: getStoredProducts().filter(p => p.category === name).length,
+      }));
+    }
+    return await apiFetch<Category[]>('/categories');
+  },
+
+  async createCategory(name: string): Promise<Category> {
+    return await apiFetch<Category>('/categories', {
+      method: 'POST',
+      body: JSON.stringify({ name }),
+    });
+  },
+
+  async updateCategory(id: string | number, name: string): Promise<Category> {
+    return await apiFetch<Category>(`/categories/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ name }),
+    });
+  },
+
   // ==================== ADMIN: PRODUCT MANAGEMENT ====================
 
   async getAdminProducts(query = '', showInactive = false, role?: string): Promise<Product[]> {
@@ -549,10 +578,16 @@ export const posService = {
       }
       return products;
     }
-    const params = new URLSearchParams();
-    if (query) params.append('q', query);
-    if (showInactive) params.append('showInactive', 'true');
-    return await apiFetch<Product[]>(`/admin/products?${params.toString()}`);
+    const products = await apiFetch<BackendProduct[]>('/products');
+    let mapped = products.map(mapBackendProduct);
+    if (query.trim()) {
+      const q = query.toLocaleLowerCase('tr-TR').trim();
+      mapped = mapped.filter(p =>
+        p.barcode.toLocaleLowerCase('tr-TR').includes(q) ||
+        p.name.toLocaleLowerCase('tr-TR').includes(q)
+      );
+    }
+    return mapped;
   },
 
   async createProduct(data: {
@@ -615,13 +650,26 @@ export const posService = {
       return newProduct;
     }
 
-    return await apiFetch<Product>('/admin/products', {
+    const product = await apiFetch<BackendProduct>('/products', {
       method: 'POST',
-      body: JSON.stringify({ ...data, createdBy }),
+      body: JSON.stringify({
+        name: data.name,
+        barcode: data.barcode,
+        price: data.price,
+        stock: data.stock || 0,
+        category: data.category || '',
+        brand: '',
+        description: '',
+        image_url: '',
+        is_bestseller: false,
+        bestseller_order: 0,
+      }),
     });
+    return mapBackendProduct(product);
   },
 
   async updateProduct(productId: string | number, data: {
+    barcode?: string;
     name?: string;
     price?: number;
     purchasePrice?: number;
@@ -666,10 +714,22 @@ export const posService = {
       return product;
     }
 
-    return await apiFetch<Product>(`/admin/products/${productId}`, {
+    const product = await apiFetch<BackendProduct>(`/products/${productId}`, {
       method: 'PUT',
-      body: JSON.stringify({ ...data, updatedBy }),
+      body: JSON.stringify({
+        name: data.name,
+        barcode: data.barcode,
+        price: data.price,
+        stock: 0,
+        category: data.category || '',
+        brand: '',
+        description: '',
+        image_url: '',
+        is_bestseller: false,
+        bestseller_order: 0,
+      }),
     });
+    return mapBackendProduct(product);
   },
 
   async toggleProductActive(productId: string | number, updatedBy: string, role?: string): Promise<Product> {
@@ -922,7 +982,7 @@ export const posService = {
 
   // ==================== ADMIN: BULK IMPORT ====================
 
-  previewBulkImport(csvText: string): BulkImportPreviewItem[] {
+  previewBulkImport(csvText: string, categories: Category[] = []): BulkImportPreviewItem[] {
     const lines = csvText.trim().split('\n');
     if (lines.length < 2) return [];
 
@@ -941,7 +1001,13 @@ export const posService = {
       const priceStr = cols[2] || '';
       const purchasePriceStr = cols[3] || '';
       const stockStr = cols[4] || '';
-      const category = cols[5] || '';
+      const rawCategory = cols[5] || '';
+      const normalizeCategory = (value: string) =>
+        value.trim().toLocaleLowerCase('tr-TR').replace(/\s+/g, ' ');
+      const matchedCategory = categories.find(
+        c => normalizeCategory(c.name) === normalizeCategory(rawCategory)
+      );
+      const category = matchedCategory?.name || rawCategory;
       const unit = cols[6] || 'Adet';
 
       const item: BulkImportPreviewItem = {
@@ -966,6 +1032,12 @@ export const posService = {
       if (!name) {
         item.status = 'ERROR';
         item.errorMessage = 'Ürün adı boş olamaz';
+        results.push(item);
+        continue;
+      }
+      if (rawCategory && !matchedCategory) {
+        item.status = 'ERROR';
+        item.errorMessage = `Kategori eşleşmedi: ${rawCategory}`;
         results.push(item);
         continue;
       }
@@ -1129,7 +1201,7 @@ export const posService = {
       return { created, updated, skipped, stockAdded };
     }
 
-    return await apiFetch<{ created: number; updated: number; skipped: number; stockAdded: number }>('/admin/products/bulk-import', {
+    return await apiFetch<{ created: number; updated: number; skipped: number; stockAdded: number }>('/products/bulk-import', {
       method: 'POST',
       body: JSON.stringify({ items, existingAction, createdBy }),
     });
