@@ -1002,7 +1002,20 @@ export const posService = {
       const stockStr = cols[4] || '';
       const rawCategory = cols[5] || '';
       const normalizeCategory = (value: string) =>
-        value.trim().toLocaleLowerCase('tr-TR').replace(/\s+/g, ' ');
+        value
+          .trim()
+          .replace(/^["']|["']$/g, '')
+          .replace(/\u00a0/g, ' ')
+          .toLocaleLowerCase('tr-TR')
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/ı/g, 'i')
+          .replace(/ç/g, 'c')
+          .replace(/ğ/g, 'g')
+          .replace(/ö/g, 'o')
+          .replace(/ş/g, 's')
+          .replace(/ü/g, 'u')
+          .replace(/\s+/g, ' ');
       const matchedCategory = categories.find(
         c => normalizeCategory(c.name) === normalizeCategory(rawCategory)
       );
