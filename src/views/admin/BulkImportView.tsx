@@ -54,10 +54,15 @@ export const BulkImportView: React.FC = () => {
   const parseFile = (f: File) => {
     setLoading(true);
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
         const text = e.target?.result as string;
-        const items = posService.previewBulkImport(text, categories);
+        const [freshCategories, products] = await Promise.all([
+          posService.getCategories(),
+          posService.getAdminProducts('', true, cashier?.role),
+        ]);
+        setCategories(freshCategories);
+        const items = posService.previewBulkImport(text, freshCategories, products);
         if (items.length === 0) {
           setErrorMsg('Dosya boş veya formatı hatalı. Lütfen örnek şablona uygun dosya yükleyin.');
         } else {
@@ -196,7 +201,7 @@ export const BulkImportView: React.FC = () => {
                 onChange={(e) => setExistingAction(e.target.value as BulkImportAction)}
                 className="flex-1 md:w-auto px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-zeytin-500 focus:outline-none"
               >
-                <option value="UPDATE_INFO">Bilgileri Güncelle + Stok Ekle</option>
+                <option value="UPDATE_INFO">Bilgileri Güncelle (Stok Değişmesin)</option>
                 <option value="ADD_STOCK_ONLY">Sadece Stok Ekle (Fiyat/Ad sabit)</option>
                 <option value="SKIP">Atla (İşlem Yapma)</option>
               </select>
