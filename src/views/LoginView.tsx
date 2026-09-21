@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Lock, User, KeyRound, ArrowRight, ShieldCheck } from 'lucide-react';
 import { PosAudio } from '../utils/format';
+import { showGlobalWarning } from '../utils/warningBus';
 
 export const LoginView: React.FC = () => {
   const { login } = useAuth();
@@ -16,13 +17,13 @@ export const LoginView: React.FC = () => {
     setError('');
 
     if (!usernameOrPhone.trim()) {
-      setError('Lütfen kullanıcı adı veya telefon numaranızı girin.');
+      showGlobalWarning('Lütfen kullanıcı adı veya telefon numaranızı girin.');
       PosAudio.playErrorTone();
       return;
     }
 
     if (!password) {
-      setError('Lütfen şifrenizi girin.');
+      showGlobalWarning('Lütfen şifrenizi girin.');
       PosAudio.playErrorTone();
       return;
     }
@@ -31,13 +32,13 @@ export const LoginView: React.FC = () => {
     try {
       const { success, message } = await login(usernameOrPhone.trim(), password);
       if (!success) {
-        setError(message || 'Giriş yapılamadı. Kullanıcı adı veya şifre hatalı.');
+        showGlobalWarning(message || 'Giriş yapılamadı. Kullanıcı adı veya şifre hatalı.');
         PosAudio.playErrorTone();
       } else {
         PosAudio.playSuccessChime();
       }
     } catch {
-      setError('Bağlantı hatası oluştu. Lütfen tekrar deneyiniz.');
+      showGlobalWarning('Bağlantı kurulamadı. Lütfen tekrar deneyin.');
       PosAudio.playErrorTone();
     } finally {
       setIsLoading(false);
