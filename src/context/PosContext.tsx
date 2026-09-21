@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useMemo, useCall
 import { Product, KasaId, KasaState, PaymentType, CartItem, SalePayload, Customer } from '../types/pos';
 import { posService } from '../api/posService';
 import { getTurkishWarning } from '../api/apiClient';
+import { showGlobalWarning } from '../utils/warningBus';
 import { PosAudio, formatCurrency } from '../utils/format';
 import { useAuth } from './AuthContext';
 
@@ -122,15 +123,15 @@ export const PosProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const showToast = useCallback((message: string, type: 'success' | 'error' | 'info' = 'info') => {
     const cleanMessage = String(message || '').trim() || 'İşlem tamamlanamadı. Lütfen tekrar deneyin.';
     const id = Date.now();
-    setToast({ id, message: cleanMessage, type });
-
-    // Uyarılar kullanıcı "Tamam" diyene kadar açık kalır.
-    // Başarı/bilgi bildirimleri kısa süre sonra otomatik kapanır.
-    if (type !== 'error') {
-      setTimeout(() => {
-        setToast(current => (current?.id === id ? null : current));
-      }, 3200);
+    if (type === 'error') {
+      showGlobalWarning(cleanMessage);
+      return;
     }
+
+    setToast({ id, message: cleanMessage, type });
+    setTimeout(() => {
+      setToast(current => (current?.id === id ? null : current));
+    }, 3200);
   }, []);
 
   const dismissToast = useCallback(() => {
