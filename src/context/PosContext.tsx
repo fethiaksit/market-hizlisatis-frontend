@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { Product, KasaId, KasaState, PaymentType, CartItem, SalePayload, Customer } from '../types/pos';
 import { posService } from '../api/posService';
+import { getTurkishWarning } from '../api/apiClient';
 import { PosAudio, formatCurrency } from '../utils/format';
 import { useAuth } from './AuthContext';
 
@@ -107,8 +108,8 @@ export const PosProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     try {
       const data = await posService.getCustomers();
       setCustomers(data);
-    } catch {
-      // Ignore
+    } catch (error: unknown) {
+      showToast(getTurkishWarning(error, 'Cari müşteriler yüklenemedi. Lütfen tekrar deneyin.'), 'error');
     }
   }, []);
 
@@ -118,8 +119,9 @@ export const PosProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [loadProducts, loadCustomers]);
 
   const showToast = useCallback((message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    const cleanMessage = String(message || '').trim() || 'İşlem hakkında bilgi alınamadı. Lütfen tekrar deneyin.';
     const id = Date.now();
-    setToast({ id, message, type });
+    setToast({ id, message: cleanMessage, type });
     setTimeout(() => {
       setToast(current => (current?.id === id ? null : current));
     }, 3200);
@@ -299,7 +301,7 @@ export const PosProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     } catch {
       PosAudio.playErrorTone();
-      showToast('Ürün arama hatası', 'error');
+      showToast('Ürün aranırken bir sorun oluştu. Lütfen tekrar deneyin.', 'error');
       return false;
     }
   }, [addToCart, showToast]);
@@ -385,8 +387,7 @@ export const PosProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     } catch (err: unknown) {
       PosAudio.playErrorTone();
-      const msg = err instanceof Error ? err.message : 'Satış sırasında hata oluştu';
-      showToast(msg, 'error');
+      showToast(getTurkishWarning(err, 'Satış tamamlanamadı. Lütfen tekrar deneyin.'), 'error');
       return false;
     } finally {
       setIsSubmittingSale(false);
