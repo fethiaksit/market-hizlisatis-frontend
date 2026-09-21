@@ -380,6 +380,8 @@ export const posService = {
         date: t.transaction_date ? t.transaction_date.split('T')[0] : '',
         time: t.created_at ? new Date(t.created_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }) : '',
         createdAt: t.created_at || new Date().toISOString(),
+        saleId: t.sale_id || undefined,
+        receiptNo: t.sale_no || undefined,
         note: t.note || '',
       } as CustomerTransaction;
     });
