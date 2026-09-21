@@ -1,3 +1,5 @@
+import { showGlobalWarning } from '../utils/warningBus';
+
 // Production defaults to the same-origin nginx /api proxy.
 // Mock mode is opt-in only; production must never silently show demo data.
 const DEFAULT_API_URL = '/api';
@@ -91,7 +93,9 @@ export async function apiFetch<T>(endpoint: string, options: RequestInit = {}): 
       headers,
     });
   } catch {
-    throw new Error('Sunucuya bağlanılamadı. İnternet bağlantınızı kontrol edip tekrar deneyin.');
+    const message = 'Sunucuya bağlanılamadı. İnternet bağlantınızı kontrol edip tekrar deneyin.';
+    showGlobalWarning(message);
+    throw new Error(message);
   }
 
   if (!response.ok) {
@@ -101,12 +105,16 @@ export async function apiFetch<T>(endpoint: string, options: RequestInit = {}): 
       normalizeServerMessage(errorData?.message) ||
       normalizeServerMessage(errorData?.detail);
 
-    throw new Error(serverMessage || warningForStatus(response.status));
+    const message = serverMessage || warningForStatus(response.status);
+    showGlobalWarning(message);
+    throw new Error(message);
   }
 
   const json = await response.json().catch(() => null);
   if (json === null) {
-    throw new Error('Sunucudan geçerli bir yanıt alınamadı. Lütfen tekrar deneyin.');
+    const message = 'Sunucudan geçerli bir yanıt alınamadı. Lütfen tekrar deneyin.';
+    showGlobalWarning(message);
+    throw new Error(message);
   }
 
   if (
