@@ -742,11 +742,13 @@ export const posService = {
       id: string | number;
       sale_no: string;
       total_amount: number;
+      customer_new_balance?: number | string | null;
       items?: Array<{ quantity: number }>;
     }>('/sales', {
       method: 'POST',
       body: JSON.stringify({
         payment_method: paymentMethodMap[payload.paymentType],
+        customer_id: payload.paymentType === 'CREDIT' ? Number(payload.customerId) : undefined,
         items: payload.items.map(item => ({
           product_id: Number(item.productId),
           barcode: item.barcode,
@@ -762,6 +764,10 @@ export const posService = {
       message: 'Satış başarıyla tamamlandı',
       total: Number(sale.total_amount || 0),
       itemsCount: (sale.items || []).reduce((sum, item) => sum + Number(item.quantity || 0), 0),
+      customerNewBalance:
+        sale.customer_new_balance !== undefined && sale.customer_new_balance !== null
+          ? Number(sale.customer_new_balance)
+          : undefined,
     };
   },
 
