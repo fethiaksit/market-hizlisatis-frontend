@@ -5,6 +5,7 @@ import { LoginView } from './views/LoginView';
 import { PosView } from './views/PosView';
 import { EndOfDayView } from './views/EndOfDayView';
 import { AdminView } from './views/AdminView';
+import { ToastNotification } from './components/ToastNotification';
 
 const AppContent: React.FC = () => {
   const { activeView } = useAuth();
@@ -15,7 +16,12 @@ const AppContent: React.FC = () => {
     case 'EOD':
       return <EndOfDayView />;
     case 'ADMIN':
-      return <AdminView />;
+      return (
+        <PosProvider>
+          <AdminView />
+          <ToastNotification />
+        </PosProvider>
+      );
     case 'POS':
     default:
       return (
