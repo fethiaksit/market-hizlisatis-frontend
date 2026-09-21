@@ -103,31 +103,52 @@ type BackendProduct = {
   id: string | number;
   barcode?: string;
   name: string;
-  price: number;
+  price?: number;
+  sale_price?: number;
   purchasePrice?: number;
-  stock: number;
+  purchase_price?: number;
+  stock?: number;
   category?: string;
   is_bestseller?: boolean;
+  isQuickProduct?: boolean;
   bestseller_order?: number;
+  quickOrder?: number;
+  is_active?: boolean;
+  isActive?: boolean;
   created_at?: string;
+  createdAt?: string;
   updated_at?: string;
+  updatedAt?: string;
 };
+
+async function apiFetchWithFallback<T>(primaryEndpoint: string, fallbackEndpoint: string, options: RequestInit = {}): Promise<T> {
+  try {
+    return await apiFetch<T>(primaryEndpoint, options);
+  } catch (err: unknown) {
+    if (err instanceof Error && (err.message.includes('404') || err.message.includes('Not Found') || err.message.includes('endpoint not found'))) {
+      return await apiFetch<T>(fallbackEndpoint, options);
+    }
+    throw err;
+  }
+}
 
 function mapBackendProduct(product: BackendProduct): Product {
   return {
     id: product.id,
     barcode: product.barcode || '',
-    name: product.name,
-    price: Number(product.price || 0),
-    purchasePrice: product.purchasePrice !== undefined ? Number(product.purchasePrice) : undefined,
-    stock: Number(product.stock || 0),
+    name: product.name || '',
+    price: Number(product.price ?? product.sale_price ?? 0),
+    purchasePrice: product.purchasePrice !== undefined 
+      ? Number(product.purchasePrice) 
+      : (product.purchase_price !== undefined ? Number(product.purchase_price) : undefined),
+    stock: Number(product.stock ?? 0),
     unit: 'Adet',
     category: product.category || '',
-    isQuickProduct: Boolean(product.is_bestseller),
-    quickOrder: product.bestseller_order || undefined,
-    isActive: true,
-    createdAt: product.created_at,
-    updatedAt: product.updated_at,
+    isQuickProduct: Boolean(product.is_bestseller ?? product.isQuickProduct),
+    quickOrder: product.bestseller_order ?? product.quickOrder ?? undefined,
+    isActive: product.is_active ?? product.isActive ?? true,
+    createdAt: product.created_at || product.createdAt,
+    updatedAt: product.updated_at || product.updatedAt,
   };
 }
 
@@ -301,7 +322,10 @@ export const posService = {
     if (query.trim()) params.append('q', query.trim());
     if (showInactive) params.append('is_active', 'all');
 
-    const list = await apiFetch<any[]>(`/customers?${params.toString()}`);
+    const list = await apiFetchWithFallback<any[]>(
+      `/customers?${params.toString()}`,
+      `/admin/customers?${params.toString()}`
+    );
     const items = Array.isArray(list) ? list : [];
     return items.map(c => ({
       id: c.id,
@@ -341,7 +365,10 @@ export const posService = {
     const params = new URLSearchParams();
     params.append('customer_id', String(customerId));
 
-    const list = await apiFetch<any[]>(`/customer-transactions?${params.toString()}`);
+    const list = await apiFetchWithFallback<any[]>(
+      `/customer-transactions?${params.toString()}`,
+      `/admin/customer-transactions?${params.toString()}`
+    );
     const items = Array.isArray(list) ? list : [];
     return items.map(t => ({
       id: String(t.id),
@@ -400,7 +427,7 @@ export const posService = {
       return newCustomer;
     }
 
-    const c = await apiFetch<any>('/customers', {
+    const c = await apiFetchWithFallback<any>('/customers', '/admin/customers', {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -433,7 +460,7 @@ export const posService = {
       return customer;
     }
 
-    const c = await apiFetch<any>(`/customers/${id}`, {
+    const c = await apiFetchWithFallback<any>(`/customers/${id}`, `/admin/customers/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     });
@@ -462,7 +489,7 @@ export const posService = {
       return;
     }
 
-    await apiFetch(`/customers/${id}`, {
+    await apiFetchWithFallback(`/customers/${id}`, `/admin/customers/${id}`, {
       method: 'DELETE',
     });
   },
@@ -533,7 +560,8 @@ export const posService = {
     }
 
     const products = await apiFetch<BackendProduct[]>('/products');
-    return products.map(mapBackendProduct);
+    const items = Array.isArray(products) ? products : [];
+    return items.map(mapBackendProduct);
   },
 
   async findProductByBarcode(barcode: string): Promise<Product | null> {
@@ -769,7 +797,8 @@ export const posService = {
         product_count: getStoredProducts().filter(p => p.category === name).length,
       }));
     }
-    return await apiFetch<Category[]>('/categories');
+    const res = await apiFetch<Category[]>('/categories');
+    return Array.isArray(res) ? res : [];
   },
 
   async createCategory(name: string): Promise<Category> {
@@ -805,7 +834,8 @@ export const posService = {
       return products;
     }
     const products = await apiFetch<BackendProduct[]>('/products');
-    let mapped = products.map(mapBackendProduct);
+    const items = Array.isArray(products) ? products : [];
+    let mapped = items.map(mapBackendProduct);
     if (query.trim()) {
       const q = query.toLocaleLowerCase('tr-TR').trim();
       mapped = mapped.filter(p =>
@@ -1077,7 +1107,7 @@ export const posService = {
       note: note || '',
     };
 
-    const res = await apiFetch<any>('/stock-movements', {
+    const res = await apiFetchWithFallback<any>('/stock-movements', '/admin/stock-movements', {
       method: 'POST',
       body: JSON.stringify(body),
     });
@@ -1095,7 +1125,7 @@ export const posService = {
     }
 
     const params = productId ? `?product_id=${productId}` : '';
-    const res = await apiFetch<any[]>(`/stock-movements${params}`);
+    const res = await apiFetchWithFallback<any[]>(`/stock-movements${params}`, `/admin/stock-movements${params}`);
     return Array.isArray(res) ? res.map(mapBackendStockMovementToFrontend) : [];
   },
 
@@ -1152,7 +1182,7 @@ export const posService = {
       note: e.note || 'Toplu stok girişi',
     }));
 
-    const res = await apiFetch<any[]>('/stock-movements/bulk', {
+    const res = await apiFetchWithFallback<any[]>('/stock-movements/bulk', '/admin/stock-movements/bulk', {
       method: 'POST',
       body: JSON.stringify({ entries: formattedEntries }),
     });
