@@ -496,6 +496,22 @@ export const posService = {
     });
   },
 
+  async createCustomerDebt(data: {
+    customerId: string | number;
+    amount: number;
+    note?: string;
+  }): Promise<CustomerTransaction> {
+    return await apiFetch<CustomerTransaction>(`/admin/customers/${data.customerId}/transactions`, {
+      method: 'POST',
+      body: JSON.stringify({
+        type: 'debt',
+        amount: data.amount,
+        transaction_date: new Date().toISOString().split('T')[0],
+        note: data.note || 'Manuel cari borç',
+      }),
+    });
+  },
+
   async createCustomerPayment(data: {
     customerId: string | number;
     amount: number;
