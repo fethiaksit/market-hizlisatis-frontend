@@ -21,7 +21,7 @@ export const ToastNotification: React.FC = () => {
         {toast.type === 'info' && <Info className="w-6 h-6 text-blue-400 shrink-0" />}
 
         <span className="font-bold text-sm tracking-wide">
-          {toast.message}
+          {toast.type === 'error' ? `Uyarı: ${toast.message || 'İşlem tamamlanamadı. Lütfen tekrar deneyin.'}` : (toast.message || 'Bilgi güncellendi.')}
         </span>
       </div>
     </div>
