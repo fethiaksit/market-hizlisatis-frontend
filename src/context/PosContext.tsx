@@ -52,7 +52,7 @@ interface PosContextType {
   setApiSettingsOpen: (open: boolean) => void;
   refreshProducts: () => Promise<void>;
   refreshCustomers: () => Promise<void>;
-  addNewCustomer: (data: { name: string; phone?: string; note?: string }) => Promise<Customer>;
+  addNewCustomer: (data: { name: string; phone: string; note?: string }) => Promise<Customer>;
 }
 
 const PosContext = createContext<PosContextType | undefined>(undefined);
@@ -317,7 +317,7 @@ export const PosProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }, [addToCart, showToast]);
 
-  const addNewCustomer = useCallback(async (data: { name: string; phone?: string; note?: string }): Promise<Customer> => {
+  const addNewCustomer = useCallback(async (data: { name: string; phone: string; note?: string }): Promise<Customer> => {
     const created = await posService.createCustomer(data);
     await loadCustomers();
     setCustomerForActiveKasa(created);
