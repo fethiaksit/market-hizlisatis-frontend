@@ -364,17 +364,40 @@ export const posService = {
 
     const list = await apiFetch<any[]>(`/admin/customers/${customerId}/transactions`);
     const items = Array.isArray(list) ? list : [];
-    return items.map(t => ({
-      id: String(t.id),
-      customerId: t.customer_id,
-      type: t.type === 'debt' ? 'SALE' : t.type === 'payment' ? 'PAYMENT' : t.type,
-      amount: Number(t.amount || 0),
-      balanceAfter: Number(t.balance_after || 0),
-      date: t.transaction_date ? t.transaction_date.split('T')[0] : '',
-      time: t.created_at ? new Date(t.created_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }) : '',
-      createdAt: t.created_at || new Date().toISOString(),
-      note: t.note || '',
-    }));
+
+    let runningBalance = 0;
+    const mappedOldestFirst = [...items].reverse().map(t => {
+      const amount = Number(t.amount || 0);
+      if (t.type === 'debt') runningBalance += amount;
+      if (t.type === 'payment') runningBalance -= amount;
+
+      return {
+        id: String(t.id),
+        customerId: t.customer_id,
+        type: t.type === 'debt' ? 'SALE' : t.type === 'payment' ? 'PAYMENT' : t.type,
+        amount,
+        balanceAfter: runningBalance,
+        date: t.transaction_date ? t.transaction_date.split('T')[0] : '',
+        time: t.created_at ? new Date(t.created_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }) : '',
+        createdAt: t.created_at || new Date().toISOString(),
+        note: t.note || '',
+      } as CustomerTransaction;
+    });
+
+    return mappedOldestFirst.reverse();
+  },
+
+  async getCustomerBalance(customerId: string | number): Promise<{
+    balance: number;
+    debt_total: number;
+    payment_total: number;
+  }> {
+    const data = await apiFetch<any>(`/admin/customers/${customerId}/balance`);
+    return {
+      balance: Number(data?.balance || 0),
+      debt_total: Number(data?.debt_total || 0),
+      payment_total: Number(data?.payment_total || 0),
+    };
   },
 
   async getSaleDetail(saleIdOrReceiptNo: string | number): Promise<SaleRecord | null> {
