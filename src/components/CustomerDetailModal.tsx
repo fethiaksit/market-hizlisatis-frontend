@@ -33,6 +33,7 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({
   const { setCustomerForActiveKasa, showToast } = usePos();
   const [transactions, setTransactions] = useState<CustomerTransaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentBalance, setCurrentBalance] = useState(customer?.balance || 0);
 
   // Filters
   const [startDate, setStartDate] = useState('');
@@ -48,12 +49,16 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({
     if (!customer) return;
     setLoading(true);
     try {
-      const data = await posService.getCustomerTransactions(customer.id, {
-        startDate: startDate || undefined,
-        endDate: endDate || undefined,
-        type: selectedType !== 'ALL' ? selectedType : undefined,
-      });
+      const [data, balanceInfo] = await Promise.all([
+        posService.getCustomerTransactions(customer.id, {
+          startDate: startDate || undefined,
+          endDate: endDate || undefined,
+          type: selectedType !== 'ALL' ? selectedType : undefined,
+        }),
+        posService.getCustomerBalance(customer.id),
+      ]);
       setTransactions(data);
+      setCurrentBalance(balanceInfo.balance);
     } catch {
       // Ignore
     } finally {
@@ -120,9 +125,9 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({
                 GÜNCEL BAKİYE
               </span>
               <span className={`text-xl font-black ${
-                customer.balance > 0 ? 'text-red-400' : 'text-emerald-400'
+                currentBalance > 0 ? 'text-red-400' : 'text-emerald-400'
               }`}>
-                {formatCurrency(customer.balance)} {customer.balance > 0 ? 'Borç' : ''}
+                {formatCurrency(currentBalance)} {currentBalance > 0 ? 'Borç' : ''}
               </span>
             </div>
 
@@ -274,6 +279,11 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({
                         </span>
                       )}
                     </div>
+                    {tx.note && (
+                      <div className="mt-1 text-xs font-semibold text-gray-700 bg-gray-50 border border-gray-100 rounded-lg px-2 py-1">
+                        Açıklama: {tx.note}
+                      </div>
+                    )}
                   </div>
                 </div>
 
