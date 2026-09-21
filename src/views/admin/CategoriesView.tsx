@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { FolderPlus, Pencil, Save, X } from 'lucide-react';
 import { Category } from '../../types/pos';
 import { posService } from '../../api/posService';
+import { showGlobalWarning } from '../../utils/warningBus';
 
 export const CategoriesView: React.FC = () => {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -17,7 +18,7 @@ export const CategoriesView: React.FC = () => {
     try {
       setCategories(await posService.getCategories());
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Kategoriler yüklenemedi.');
+      showGlobalWarning(err instanceof Error ? err.message : 'Kategoriler yüklenemedi.');
     } finally {
       setLoading(false);
     }
@@ -29,7 +30,10 @@ export const CategoriesView: React.FC = () => {
 
   const addCategory = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newName.trim()) return;
+    if (!newName.trim()) {
+      showGlobalWarning('Kategori adı boş bırakılamaz.');
+      return;
+    }
     setLoading(true);
     setError('');
     try {
@@ -37,13 +41,16 @@ export const CategoriesView: React.FC = () => {
       setNewName('');
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Kategori eklenemedi.');
+      showGlobalWarning(err instanceof Error ? err.message : 'Kategori eklenemedi.');
       setLoading(false);
     }
   };
 
   const saveEdit = async (id: string | number) => {
-    if (!editingName.trim()) return;
+    if (!editingName.trim()) {
+      showGlobalWarning('Kategori adı boş bırakılamaz.');
+      return;
+    }
     setLoading(true);
     setError('');
     try {
@@ -52,7 +59,7 @@ export const CategoriesView: React.FC = () => {
       setEditingName('');
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Kategori güncellenemedi.');
+      showGlobalWarning(err instanceof Error ? err.message : 'Kategori güncellenemedi.');
       setLoading(false);
     }
   };
