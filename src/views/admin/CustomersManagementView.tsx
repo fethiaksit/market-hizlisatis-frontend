@@ -32,6 +32,7 @@ export const CustomersManagementView: React.FC = () => {
   // Modal States
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+  const [formMode, setFormMode] = useState<'CREATE' | 'EDIT'>('CREATE');
   const [detailCustomer, setDetailCustomer] = useState<Customer | null>(null);
 
   // Form Fields
@@ -85,6 +86,7 @@ export const CustomersManagementView: React.FC = () => {
   }, [customers]);
 
   const handleOpenCreateModal = () => {
+    setFormMode('CREATE');
     setEditingCustomer(null);
     setName('');
     setPhone('');
@@ -97,6 +99,7 @@ export const CustomersManagementView: React.FC = () => {
   };
 
   const handleOpenEditModal = (cust: Customer) => {
+    setFormMode('EDIT');
     setEditingCustomer(cust);
     setName(cust.name);
     setPhone(cust.phone || '');
@@ -171,7 +174,11 @@ export const CustomersManagementView: React.FC = () => {
         credit_limit: parsedLimit,
       };
 
-      if (editingCustomer) {
+      if (formMode === 'EDIT') {
+        if (!editingCustomer) {
+          showGlobalWarning('Düzenlenecek cari müşteri bulunamadı. Pencereyi kapatıp tekrar deneyin.');
+          return;
+        }
         await posService.updateCustomer(editingCustomer.id, payload);
         showToast('Cari müşteri başarıyla güncellendi.', 'success');
       } else {
@@ -180,6 +187,8 @@ export const CustomersManagementView: React.FC = () => {
       }
 
       setIsFormOpen(false);
+      setEditingCustomer(null);
+      setFormMode('CREATE');
       loadCustomers();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Kayıt işlemi başarısız!';
@@ -403,13 +412,17 @@ export const CustomersManagementView: React.FC = () => {
               <div className="flex items-center space-x-2">
                 <Users className="w-5 h-5 text-zeytin-300" />
                 <h3 className="text-base font-black tracking-wide">
-                  {editingCustomer ? 'CARİ MÜŞTERİ DÜZENLE' : 'YENİ CARİ MÜŞTERİ EKLE'}
+                  {formMode === 'EDIT' ? 'CARİ MÜŞTERİ DÜZENLE' : 'YENİ CARİ MÜŞTERİ EKLE'}
                 </h3>
               </div>
 
               <button
                 type="button"
-                onClick={() => setIsFormOpen(false)}
+                onClick={() => {
+                  setIsFormOpen(false);
+                  setEditingCustomer(null);
+                  setFormMode('CREATE');
+                }}
                 className="p-1.5 rounded-lg bg-zeytin-800 hover:bg-zeytin-700 text-white transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
