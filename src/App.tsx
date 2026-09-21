@@ -6,6 +6,7 @@ import { PosView } from './views/PosView';
 import { EndOfDayView } from './views/EndOfDayView';
 import { AdminView } from './views/AdminView';
 import { ToastNotification } from './components/ToastNotification';
+import { GlobalWarningDialog } from './components/GlobalWarningDialog';
 
 const AppContent: React.FC = () => {
   const { activeView } = useAuth();
@@ -34,9 +35,12 @@ const AppContent: React.FC = () => {
 
 export const App: React.FC = () => {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+      <GlobalWarningDialog />
+    </>
   );
 };
 
