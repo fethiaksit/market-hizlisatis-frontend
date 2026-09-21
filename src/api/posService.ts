@@ -322,10 +322,7 @@ export const posService = {
     if (query.trim()) params.append('q', query.trim());
     if (showInactive) params.append('is_active', 'all');
 
-    const list = await apiFetchWithFallback<any[]>(
-      `/customers?${params.toString()}`,
-      `/admin/customers?${params.toString()}`
-    );
+    const list = await apiFetch<any[]>(`/admin/customers?${params.toString()}`);
     const items = Array.isArray(list) ? list : [];
     return items.map(c => ({
       id: c.id,
@@ -365,10 +362,7 @@ export const posService = {
     const params = new URLSearchParams();
     params.append('customer_id', String(customerId));
 
-    const list = await apiFetchWithFallback<any[]>(
-      `/customer-transactions?${params.toString()}`,
-      `/admin/customer-transactions?${params.toString()}`
-    );
+    const list = await apiFetch<any[]>(`/admin/customers/${customerId}/transactions`);
     const items = Array.isArray(list) ? list : [];
     return items.map(t => ({
       id: String(t.id),
@@ -397,8 +391,11 @@ export const posService = {
     }
   },
 
-  async createCustomer(data: { name: string; phone?: string; note?: string; address?: string; is_active?: boolean; credit_limit?: number | null }): Promise<Customer> {
+  async createCustomer(data: { name: string; phone: string; note?: string; address?: string; is_active?: boolean; credit_limit?: number | null }): Promise<Customer> {
     const cleanPhone = (data.phone || '').trim();
+    if (!cleanPhone) {
+      throw new Error('Telefon numarası zorunludur.');
+    }
     if (isMockMode()) {
       const customers = getStoredCustomers();
       
@@ -427,9 +424,9 @@ export const posService = {
       return newCustomer;
     }
 
-    const c = await apiFetchWithFallback<any>('/customers', '/admin/customers', {
+    const c = await apiFetch<any>('/admin/customers', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify({ ...data, phone: cleanPhone }),
     });
     return {
       id: c.id,
@@ -445,7 +442,7 @@ export const posService = {
     };
   },
 
-  async updateCustomer(id: string | number, data: { name: string; phone?: string; note?: string; address?: string; is_active?: boolean; credit_limit?: number | null }): Promise<Customer> {
+  async updateCustomer(id: string | number, data: { name: string; phone: string; note?: string; address?: string; is_active?: boolean; credit_limit?: number | null }): Promise<Customer> {
     if (isMockMode()) {
       const customers = getStoredCustomers();
       const customer = customers.find(c => String(c.id) === String(id));
@@ -460,9 +457,14 @@ export const posService = {
       return customer;
     }
 
-    const c = await apiFetchWithFallback<any>(`/customers/${id}`, `/admin/customers/${id}`, {
+    const cleanPhone = (data.phone || '').trim();
+    if (!cleanPhone) {
+      throw new Error('Telefon numarası zorunludur.');
+    }
+
+    const c = await apiFetch<any>(`/admin/customers/${id}`, {
       method: 'PUT',
-      body: JSON.stringify(data),
+      body: JSON.stringify({ ...data, phone: cleanPhone }),
     });
     return {
       id: c.id,
@@ -489,7 +491,7 @@ export const posService = {
       return;
     }
 
-    await apiFetchWithFallback(`/customers/${id}`, `/admin/customers/${id}`, {
+    await apiFetch(`/admin/customers/${id}`, {
       method: 'DELETE',
     });
   },
@@ -540,10 +542,9 @@ export const posService = {
       return newTx;
     }
 
-    return await apiFetch<CustomerTransaction>(`/customer-transactions`, {
+    return await apiFetch<CustomerTransaction>(`/admin/customers/${data.customerId}/transactions`, {
       method: 'POST',
       body: JSON.stringify({
-        customer_id: Number(data.customerId),
         type: 'payment',
         amount: data.amount,
         transaction_date: new Date().toISOString().split('T')[0],
