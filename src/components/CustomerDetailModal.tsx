@@ -301,10 +301,10 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({
                   </div>
 
                   {/* Fiş Detayı Butonu (Only for SALE transactions) */}
-                  {tx.receiptNo && (
+                  {(tx.receiptNo || tx.saleId) && (
                     <button
                       type="button"
-                      onClick={() => setSelectedReceiptNo(tx.receiptNo || null)}
+                      onClick={() => setSelectedReceiptNo(String(tx.receiptNo || tx.saleId))}
                       className="p-2 bg-gray-100 hover:bg-zeytin-100 hover:text-zeytin-900 text-gray-600 rounded-xl transition-colors cursor-pointer flex items-center space-x-1"
                       title="Fiş ve Ürün Detayını Gör"
                     >
