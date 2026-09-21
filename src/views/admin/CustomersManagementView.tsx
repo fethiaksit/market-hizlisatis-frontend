@@ -4,6 +4,7 @@ import { Customer } from '../../types/pos';
 import { formatCurrency } from '../../utils/format';
 import { usePos } from '../../context/PosContext';
 import { CustomerDetailModal } from '../../components/CustomerDetailModal';
+import { showGlobalWarning } from '../../utils/warningBus';
 import { 
   Users, 
   UserPlus, 
@@ -131,19 +132,19 @@ export const CustomersManagementView: React.FC = () => {
       loadCustomers();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Durum değiştirilemedi!';
-      showToast(msg, 'error');
+      showGlobalWarning(msg);
     }
   };
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
-      setFormError('Lütfen Ad Soyad / Cari Adı alanını doldurunuz.');
+      showGlobalWarning('Lütfen Ad Soyad / Cari Adı alanını doldurun.');
       return;
     }
 
     if (!phone.trim()) {
-      setFormError('Telefon numarası zorunludur.');
+      showGlobalWarning('Telefon numarası zorunludur.');
       return;
     }
 
@@ -151,7 +152,7 @@ export const CustomersManagementView: React.FC = () => {
     if (creditLimit.trim()) {
       const val = parseFloat(creditLimit.replace(',', '.'));
       if (isNaN(val) || val < 0) {
-        setFormError('Lütfen geçerli bir cari limit giriniz.');
+        showGlobalWarning('Lütfen geçerli bir cari limit girin.');
         return;
       }
       parsedLimit = val;
@@ -182,7 +183,7 @@ export const CustomersManagementView: React.FC = () => {
       loadCustomers();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Kayıt işlemi başarısız!';
-      setFormError(msg);
+      showGlobalWarning(msg);
     } finally {
       setIsSaving(false);
     }
