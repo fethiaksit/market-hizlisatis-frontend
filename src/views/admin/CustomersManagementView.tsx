@@ -142,6 +142,11 @@ export const CustomersManagementView: React.FC = () => {
       return;
     }
 
+    if (!phone.trim()) {
+      setFormError('Telefon numarası zorunludur.');
+      return;
+    }
+
     let parsedLimit: number | null = null;
     if (creditLimit.trim()) {
       const val = parseFloat(creditLimit.replace(',', '.'));
@@ -437,7 +442,7 @@ export const CustomersManagementView: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
-                  Telefon Numarası
+                  Telefon Numarası <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <Phone className="w-4 h-4 absolute left-3 top-2.5 text-gray-400" />
