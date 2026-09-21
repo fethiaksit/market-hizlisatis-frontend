@@ -64,7 +64,7 @@ export function getTurkishWarning(error: unknown, fallback = FALLBACK_WARNING): 
 }
 
 function warningForStatus(status: number): string {
-  if (status === 400) return 'Gönderilen bilgiler uygun değil. Lütfen alanları kontrol edin.';
+  if (status === 400) return 'İşlem tamamlanamadı: zorunlu alanlardan biri eksik, girilen değerlerden biri geçersiz veya aynı bilgiyle kayıt zaten mevcut. Formdaki alanları tek tek kontrol edin.';
   if (status === 401) return 'Oturum süreniz dolmuş olabilir. Lütfen yeniden giriş yapın.';
   if (status === 403) return 'Bu işlem için yetkiniz bulunmuyor.';
   if (status === 404) return 'Aradığınız kayıt bulunamadı.';
