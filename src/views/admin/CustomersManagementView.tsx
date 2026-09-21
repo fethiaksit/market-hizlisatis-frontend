@@ -139,8 +139,7 @@ export const CustomersManagementView: React.FC = () => {
     }
   };
 
-  const handleFormSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const saveCustomer = async () => {
     if (!name.trim()) {
       showGlobalWarning('Lütfen Ad Soyad / Cari Adı alanını doldurun.');
       return;
@@ -196,6 +195,11 @@ export const CustomersManagementView: React.FC = () => {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleFormSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await saveCustomer();
   };
 
   return (
@@ -530,7 +534,8 @@ export const CustomersManagementView: React.FC = () => {
                 </button>
 
                 <button
-                  type="submit"
+                  type="button"
+                  onClick={saveCustomer}
                   disabled={isSaving}
                   className="px-5 py-2.5 bg-zeytin-700 hover:bg-zeytin-800 disabled:bg-gray-300 text-white font-black rounded-xl text-xs cursor-pointer shadow-sm flex items-center space-x-1.5"
                 >
