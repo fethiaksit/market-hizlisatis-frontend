@@ -30,7 +30,7 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({
   customer,
   onClose,
 }) => {
-  const { setCustomerForActiveKasa, showToast } = usePos();
+  const { setCustomerForActiveKasa, setPaymentType, setCustomerModalOpen, showToast } = usePos();
   const [transactions, setTransactions] = useState<CustomerTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentBalance, setCurrentBalance] = useState(customer?.balance || 0);
@@ -74,7 +74,9 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({
 
   const handleSelectForSale = () => {
     setCustomerForActiveKasa(customer);
-    showToast(`Cari satışa seçildi: ${customer.name}`, 'success');
+    setPaymentType('CREDIT');
+    setCustomerModalOpen(false);
+    showToast(`Cari satışa seçildi ve ödeme türü CARİ yapıldı: ${customer.name}`, 'success');
     onClose();
   };
 
