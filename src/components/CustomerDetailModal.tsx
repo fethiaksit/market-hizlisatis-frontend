@@ -4,6 +4,7 @@ import { posService } from '../api/posService';
 import { usePos } from '../context/PosContext';
 import { formatCurrency } from '../utils/format';
 import { CustomerPaymentModal } from './CustomerPaymentModal';
+import { CustomerDebtModal } from './CustomerDebtModal';
 import { ReceiptDetailModal } from './ReceiptDetailModal';
 import { 
   Users, 
@@ -40,6 +41,7 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({
 
   // Sub-modals
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [isDebtModalOpen, setIsDebtModalOpen] = useState(false);
   const [selectedReceiptNo, setSelectedReceiptNo] = useState<string | null>(null);
 
   const loadTransactions = useCallback(async () => {
@@ -125,6 +127,15 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({
             </div>
 
             <div className="flex items-center space-x-1.5">
+              <button
+                type="button"
+                onClick={() => setIsDebtModalOpen(true)}
+                className="py-2 px-3 bg-amber-700 hover:bg-amber-600 active:bg-amber-800 text-white font-extrabold rounded-xl text-xs flex items-center space-x-1 shadow-sm transition-all cursor-pointer whitespace-nowrap"
+              >
+                <Coins className="w-4 h-4" />
+                <span>Borç Ekle</span>
+              </button>
+
               <button
                 type="button"
                 onClick={() => setIsPaymentModalOpen(true)}
@@ -312,6 +323,12 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({
       </div>
 
       {/* Sub-modals */}
+      <CustomerDebtModal
+        customer={isDebtModalOpen ? customer : null}
+        onClose={() => setIsDebtModalOpen(false)}
+        onSaved={loadTransactions}
+      />
+
       <CustomerPaymentModal
         customer={isPaymentModalOpen ? customer : null}
         onClose={() => setIsPaymentModalOpen(false)}
