@@ -11,6 +11,7 @@ export const CustomerModal: React.FC = () => {
     setCustomerModalOpen,
     customers,
     setCustomerForActiveKasa,
+    setPaymentType,
     showToast,
   } = usePos();
 
@@ -30,7 +31,8 @@ export const CustomerModal: React.FC = () => {
 
   const handleSelect = (customer: Customer) => {
     setCustomerForActiveKasa(customer);
-    showToast(`Cari seçildi: ${customer.name}`, 'info');
+    setPaymentType('CREDIT');
+    showToast(`Cari seçildi ve ödeme türü CARİ yapıldı: ${customer.name}`, 'info');
     setCustomerModalOpen(false);
   };
 
