@@ -18,19 +18,49 @@ export const CustomerModal: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [detailCustomer, setDetailCustomer] = useState<Customer | null>(null);
 
+  const normalizeText = (value: unknown) =>
+    String(value ?? '')
+      .toLocaleLowerCase('tr-TR')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/ı/g, 'i')
+      .replace(/ş/g, 's')
+      .replace(/ğ/g, 'g')
+      .replace(/ü/g, 'u')
+      .replace(/ö/g, 'o')
+      .replace(/ç/g, 'c')
+      .trim();
+
+  const normalizePhone = (value: unknown) =>
+    String(value ?? '').replace(/\D/g, '');
+
   const filteredCustomers = useMemo(() => {
-    const q = searchQuery.toLowerCase().trim();
-    if (!q) return customers;
-    return customers.filter(c => 
-      c.name.toLowerCase().includes(q) || 
-      c.phone.replace(/\D/g, '').includes(q.replace(/\D/g, ''))
-    );
+    const textQuery = normalizeText(searchQuery);
+    const phoneQuery = normalizePhone(searchQuery);
+
+    if (!textQuery && !phoneQuery) return customers;
+
+    return customers.filter((customer) => {
+      const name = normalizeText(customer.name);
+      const phone = normalizePhone(customer.phone);
+      const note = normalizeText(customer.note);
+
+      const textMatch =
+        !!textQuery &&
+        (name.includes(textQuery) || note.includes(textQuery));
+
+      const phoneMatch =
+        !!phoneQuery &&
+        phone.includes(phoneQuery);
+
+      return textMatch || phoneMatch;
+    });
   }, [customers, searchQuery]);
 
   const closeModal = () => {
     setDetailCustomer(null);
     setSearchQuery('');
-    closeModal();
+    setCustomerModalOpen(false);
   };
 
   useEffect(() => {
