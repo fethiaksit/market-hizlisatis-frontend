@@ -10,7 +10,6 @@ import { CustomerModal } from '../components/CustomerModal';
 import { CustomerDetailModal } from '../components/CustomerDetailModal';
 import { LogoutConfirmModal } from '../components/LogoutConfirmModal';
 import { ApiSettingsModal } from '../components/ApiSettingsModal';
-import { ToastNotification } from '../components/ToastNotification';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import { usePos } from '../context/PosContext';
 
@@ -105,7 +104,6 @@ export const PosView: React.FC = () => {
       )}
       <LogoutConfirmModal />
       <ApiSettingsModal />
-      <ToastNotification />
     </div>
   );
 };
