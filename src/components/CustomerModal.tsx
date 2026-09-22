@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { usePos } from '../context/PosContext';
 import { Customer } from '../types/pos';
 import { formatCurrency } from '../utils/format';
@@ -27,6 +27,30 @@ export const CustomerModal: React.FC = () => {
     );
   }, [customers, searchQuery]);
 
+  const closeModal = () => {
+    setDetailCustomer(null);
+    setSearchQuery('');
+    closeModal();
+  };
+
+  useEffect(() => {
+    if (!isCustomerModalOpen) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        if (detailCustomer) {
+          setDetailCustomer(null);
+        } else {
+          closeModal();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isCustomerModalOpen, detailCustomer]);
+
   if (!isCustomerModalOpen) return null;
 
   const handleSelect = (customer: Customer) => {
@@ -38,8 +62,16 @@ export const CustomerModal: React.FC = () => {
 
   return (
     <>
-      <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
-        <div className="bg-white w-full max-w-xl max-h-[85vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-gray-100 animate-in fade-in duration-150">
+      <div
+        className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4"
+        onMouseDown={(e) => {
+          if (e.target === e.currentTarget) closeModal();
+        }}
+      >
+        <div
+          className="bg-white w-full sm:max-w-xl h-[88vh] sm:h-auto sm:max-h-[85vh] rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-gray-100 animate-in fade-in duration-150"
+          onMouseDown={(e) => e.stopPropagation()}
+        >
           {/* Modal Header */}
           <div className="bg-zeytin-900 text-white px-5 py-3.5 flex items-center justify-between shrink-0">
             <div className="flex items-center space-x-2">
@@ -51,13 +83,12 @@ export const CustomerModal: React.FC = () => {
 
             <button
               type="button"
-              onClick={() => {
-                setCustomerModalOpen(false);
-              }}
-              className="p-1.5 rounded-lg bg-zeytin-800 hover:bg-zeytin-700 text-white transition-colors cursor-pointer"
+              onClick={closeModal}
+              className="min-w-10 min-h-10 p-2 rounded-xl bg-white/15 hover:bg-white/25 text-white transition-colors cursor-pointer flex items-center justify-center"
               title="Kapat (Esc)"
+              aria-label="Cari seçim ekranını kapat"
             >
-              <X className="w-5 h-5" />
+              <X className="w-6 h-6" />
             </button>
           </div>
 
@@ -151,6 +182,20 @@ export const CustomerModal: React.FC = () => {
                 ))
               )}
             </div>
+          </div>
+
+          {/* Always-visible footer actions */}
+          <div className="shrink-0 border-t border-gray-200 bg-gray-50 px-3.5 py-3 flex items-center justify-between gap-3">
+            <span className="hidden sm:block text-[11px] text-gray-500 font-medium">
+              ESC veya dış alana tıklayarak çıkabilirsiniz.
+            </span>
+            <button
+              type="button"
+              onClick={closeModal}
+              className="w-full sm:w-auto px-5 py-2.5 rounded-xl border border-gray-300 bg-white hover:bg-gray-100 text-gray-800 text-sm font-black transition-colors cursor-pointer"
+            >
+              Vazgeç / Kapat
+            </button>
           </div>
         </div>
       </div>
