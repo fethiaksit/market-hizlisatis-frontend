@@ -17,6 +17,8 @@ export const BarcodeInput: React.FC<BarcodeInputProps> = ({ inputRef }) => {
     setDetailCustomer,
     currentKasa,
     setCustomerForActiveKasa,
+    setPaymentType,
+    showToast,
   } = usePos();
 
   const selectedCustomer = currentKasa.customer;
@@ -50,7 +52,20 @@ export const BarcodeInput: React.FC<BarcodeInputProps> = ({ inputRef }) => {
 
   const handleRemoveCustomer = (e: React.MouseEvent) => {
     e.stopPropagation();
+    const customerName = selectedCustomer?.name || 'Cari müşteri';
     setCustomerForActiveKasa(null);
+
+    // Cari kaldırıldığında kasayı cari ödeme modunda bırakma.
+    // Kasiyer bir sonraki işleme doğrudan devam edebilsin.
+    if (currentKasa.paymentType === 'CREDIT') {
+      setPaymentType('CASH');
+    }
+
+    showToast(`${customerName} satıştan kaldırıldı. Ödeme türü NAKİT olarak ayarlandı.`, 'info');
+
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 50);
   };
 
   return (
@@ -139,44 +154,52 @@ export const BarcodeInput: React.FC<BarcodeInputProps> = ({ inputRef }) => {
 
       {/* Selected Customer Inline Bar */}
       {selectedCustomer && (
-        <div className="bg-amber-50/90 border border-amber-300 rounded-lg px-2.5 py-1 flex items-center justify-between text-xs text-amber-900 animate-in fade-in duration-100">
-          <div className="flex items-center space-x-2 truncate">
-            <span className="font-black flex items-center gap-1 text-amber-800">
-              <UserCheck className="w-3.5 h-3.5 text-amber-600" />
-              Cari: {selectedCustomer.name}
-            </span>
-            <span className="text-amber-400">•</span>
-            <span className="text-[11px] font-bold text-amber-950">
-              Mevcut Bakiye: <span className={selectedCustomer.balance > 0 ? 'text-red-700 font-black' : 'text-emerald-800 font-bold'}>
-                {formatCurrency(selectedCustomer.balance)} {selectedCustomer.balance > 0 ? 'Borç' : ''}
-              </span>
-            </span>
+        <div className="bg-amber-50 border-2 border-amber-300 rounded-xl px-3 py-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-amber-900 animate-in fade-in duration-100 shadow-2xs">
+          <div className="min-w-0 flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-amber-200 flex items-center justify-center shrink-0">
+              <UserCheck className="w-4.5 h-4.5 text-amber-800" />
+            </div>
+
+            <div className="min-w-0">
+              <div className="font-black text-amber-950 truncate">
+                Cari: {selectedCustomer.name}
+              </div>
+              <div className="text-[11px] font-bold text-amber-900 mt-0.5">
+                Bakiye:{' '}
+                <span className={selectedCustomer.balance > 0 ? 'text-red-700 font-black' : 'text-emerald-800 font-black'}>
+                  {formatCurrency(selectedCustomer.balance)} {selectedCustomer.balance > 0 ? 'Borç' : ''}
+                </span>
+              </div>
+            </div>
           </div>
 
-          <div className="flex items-center space-x-2 shrink-0">
+          <div className="grid grid-cols-3 gap-1.5 shrink-0">
             <button
               type="button"
               onClick={() => setDetailCustomer(selectedCustomer)}
-              className="text-[10px] font-extrabold text-amber-900 bg-amber-200/80 hover:bg-amber-200 px-2 py-0.5 rounded flex items-center gap-1 cursor-pointer transition-colors"
+              className="h-9 px-2.5 rounded-lg border border-amber-300 bg-white hover:bg-amber-100 text-amber-950 text-[11px] font-extrabold flex items-center justify-center gap-1 cursor-pointer transition-colors"
               title="Cari Ekstre ve Fiş Geçmişi"
             >
-              <History className="w-3 h-3" />
-              <span>Detay / Ekstre</span>
+              <History className="w-3.5 h-3.5" />
+              <span>Ekstre</span>
             </button>
+
             <button
               type="button"
               onClick={() => setCustomerModalOpen(true)}
-              className="text-[10px] font-bold text-amber-800 hover:text-amber-950 underline cursor-pointer"
+              className="h-9 px-2.5 rounded-lg border border-amber-400 bg-amber-200 hover:bg-amber-300 text-amber-950 text-[11px] font-black cursor-pointer transition-colors"
             >
               Değiştir
             </button>
+
             <button
               type="button"
               onClick={handleRemoveCustomer}
-              className="p-0.5 hover:bg-amber-200 rounded text-amber-800 transition-colors cursor-pointer"
-              title="Cariyi Kaldır"
+              className="h-9 px-2.5 rounded-lg border border-red-300 bg-red-50 hover:bg-red-100 active:bg-red-200 text-red-700 text-[11px] font-black flex items-center justify-center gap-1 cursor-pointer transition-colors"
+              title="Seçili cariyi satıştan kaldır"
             >
-              <X className="w-3.5 h-3.5" />
+              <X className="w-4 h-4" />
+              <span>Kaldır</span>
             </button>
           </div>
         </div>
