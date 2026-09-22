@@ -1,62 +1,72 @@
-import React, { useEffect, useState } from 'react';
-import { AlertTriangle } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { AlertTriangle, X } from 'lucide-react';
 import { GLOBAL_WARNING_EVENT, GlobalWarningDetail } from '../utils/warningBus';
 
 export const GlobalWarningDialog: React.FC = () => {
   const [warning, setWarning] = useState<GlobalWarningDetail | null>(null);
+  const timerRef = useRef<number | null>(null);
 
   useEffect(() => {
     const handler = (event: Event) => {
       const customEvent = event as CustomEvent<GlobalWarningDetail>;
       const message = String(customEvent.detail?.message || '').trim();
+
       setWarning({
         title: customEvent.detail?.title || 'Uyarı',
         message: message || 'İşlem tamamlanamadı. Lütfen tekrar deneyin.',
       });
+
+      if (timerRef.current) {
+        window.clearTimeout(timerRef.current);
+      }
+
+      timerRef.current = window.setTimeout(() => {
+        setWarning(null);
+        timerRef.current = null;
+      }, 5000);
     };
 
     window.addEventListener(GLOBAL_WARNING_EVENT, handler as EventListener);
-    return () => window.removeEventListener(GLOBAL_WARNING_EVENT, handler as EventListener);
+
+    return () => {
+      window.removeEventListener(GLOBAL_WARNING_EVENT, handler as EventListener);
+      if (timerRef.current) {
+        window.clearTimeout(timerRef.current);
+      }
+    };
   }, []);
 
   if (!warning) return null;
 
   return (
-    <div className="fixed inset-0 z-[200] bg-black/45 backdrop-blur-[2px] flex items-center justify-center p-4">
+    <div className="fixed top-14 left-1/2 -translate-x-1/2 z-[220] w-[calc(100%-1rem)] sm:w-auto sm:min-w-[360px] sm:max-w-[620px] animate-in slide-in-from-top-3 fade-in duration-150 pointer-events-none">
       <div
-        className="w-full max-w-sm bg-white rounded-3xl shadow-2xl border border-amber-200 overflow-hidden"
-        role="alertdialog"
-        aria-modal="true"
-        aria-labelledby="global-warning-title"
+        className="pointer-events-auto bg-amber-50 border-2 border-amber-300 rounded-xl shadow-xl px-3.5 py-2.5 flex items-start gap-2.5"
+        role="alert"
+        aria-live="assertive"
       >
-        <div className="px-5 py-4 bg-amber-50 border-b border-amber-200 flex items-center gap-3">
-          <div className="w-11 h-11 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
-            <AlertTriangle className="w-6 h-6 text-amber-600" />
-          </div>
-          <div>
-            <h3 id="global-warning-title" className="text-lg font-black text-gray-900">
-              {warning.title || 'Uyarı'}
-            </h3>
-            <p className="text-[11px] text-gray-500 font-semibold">Lütfen işlemi kontrol edin</p>
-          </div>
+        <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
+          <AlertTriangle className="w-5 h-5 text-amber-700" />
         </div>
 
-        <div className="px-5 py-5">
-          <p className="text-sm font-bold text-gray-800 leading-relaxed">
+        <div className="min-w-0 flex-1">
+          <div className="text-xs sm:text-sm font-black text-amber-950">
+            {warning.title || 'Uyarı'}
+          </div>
+          <div className="text-[11px] sm:text-xs font-semibold text-amber-900 mt-0.5 leading-snug">
             {warning.message}
-          </p>
+          </div>
         </div>
 
-        <div className="px-5 pb-5 flex justify-end">
-          <button
-            type="button"
-            onClick={() => setWarning(null)}
-            autoFocus
-            className="min-w-28 px-5 py-2.5 bg-zeytin-700 hover:bg-zeytin-800 text-white font-black rounded-xl text-sm cursor-pointer"
-          >
-            Tamam
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => setWarning(null)}
+          className="w-8 h-8 rounded-lg hover:bg-amber-200 text-amber-900 flex items-center justify-center shrink-0 cursor-pointer"
+          title="Uyarıyı kapat"
+          aria-label="Uyarıyı kapat"
+        >
+          <X className="w-4 h-4" />
+        </button>
       </div>
     </div>
   );
