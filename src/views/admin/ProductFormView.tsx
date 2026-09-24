@@ -230,9 +230,8 @@ export const ProductFormView: React.FC<Props> = ({ productId, onClose }) => {
                 Satış Fiyatı (₺) <span className="text-red-500">*</span>
               </label>
               <input
-                type="number"
-                step="0.01"
-                min="0"
+                type="text"
+                inputMode="decimal"
                 name="price"
                 value={formData.price}
                 onChange={handleInputChange}
@@ -247,9 +246,8 @@ export const ProductFormView: React.FC<Props> = ({ productId, onClose }) => {
                 Alış Fiyatı (₺) <span className="text-gray-400 font-normal">(Opsiyonel)</span>
               </label>
               <input
-                type="number"
-                step="0.01"
-                min="0"
+                type="text"
+                inputMode="decimal"
                 name="purchasePrice"
                 value={formData.purchasePrice}
                 onChange={handleInputChange}
