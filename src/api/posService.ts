@@ -959,15 +959,11 @@ export const posService = {
       body: JSON.stringify({
         name: data.name,
         barcode: data.barcode,
-        price: data.price,
-        purchasePrice: data.purchasePrice ?? 0,
-        stock: data.stock || 0,
         category: data.category || '',
-        brand: '',
-        description: '',
-        image_url: '',
-        is_bestseller: false,
-        bestseller_order: 0,
+        sale_price: data.price,
+        purchase_price: data.purchasePrice ?? 0,
+        critical_stock: 0,
+        is_active: true,
       }),
     });
     return mapBackendProduct(product);
@@ -1024,15 +1020,11 @@ export const posService = {
       body: JSON.stringify({
         name: data.name,
         barcode: data.barcode,
-        price: data.price,
-        purchasePrice: data.purchasePrice ?? 0,
-        stock: 0,
         category: data.category || '',
-        brand: '',
-        description: '',
-        image_url: '',
-        is_bestseller: false,
-        bestseller_order: 0,
+        sale_price: data.price,
+        purchase_price: data.purchasePrice ?? 0,
+        critical_stock: 0,
+        is_active: true,
       }),
     });
     return mapBackendProduct(product);
