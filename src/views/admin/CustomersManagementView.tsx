@@ -21,6 +21,8 @@ import {
   Power
 } from 'lucide-react';
 
+import { warningBus } from '../../utils/warningBus';
+
 export const CustomersManagementView: React.FC = () => {
   const { showToast } = usePos();
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -131,7 +133,7 @@ export const CustomersManagementView: React.FC = () => {
       loadCustomers();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Durum değiştirilemedi!';
-      showToast(msg, 'error');
+      warningBus.showWarning(msg, 'İşlem Başarısız');
     }
   };
 
@@ -177,6 +179,7 @@ export const CustomersManagementView: React.FC = () => {
       loadCustomers();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Kayıt işlemi başarısız!';
+      warningBus.showWarning(msg, 'Cari Kaydı Başarısız');
       setFormError(msg);
     } finally {
       setIsSaving(false);

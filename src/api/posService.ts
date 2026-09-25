@@ -1,6 +1,43 @@
-import { Product, Category, Employee, Customer, CustomerTransaction, CustomerTransactionType, SalePayload, SaleResponse, EndOfDaySummary, SaleRecord, StockMovement, StockMovementType, PriceHistory, BulkImportPreviewItem } from '../types/pos';
+import { Product, Category, Employee, Customer, CustomerTransaction, CustomerTransactionType, SalePayload, SaleResponse, EndOfDaySummary, SaleRecord, StockMovement, StockMovementType, PriceHistory, BulkImportPreviewItem, BulkImportResult } from '../types/pos';
 import { INITIAL_PRODUCTS, INITIAL_SALES, INITIAL_CUSTOMERS, INITIAL_TRANSACTIONS, INITIAL_STOCK_MOVEMENTS, INITIAL_PRICE_HISTORY } from './mockData';
 import { apiFetch, isMockMode } from './apiClient';
+
+export function normalizeBarcode(value: unknown): string {
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'number') {
+    return BigInt(Math.round(value)).toString();
+  }
+  let text = String(value).trim();
+  if (text.toUpperCase().includes('E+')) {
+    const num = Number(text);
+    if (Number.isFinite(num)) {
+      text = BigInt(Math.round(num)).toString();
+    }
+  }
+  return text;
+}
+
+export function parseMoney(value: unknown): number {
+  if (value === null || value === undefined || value === '') {
+    return 0;
+  }
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : 0;
+  }
+  let text = String(value).trim();
+  if (!text) return 0;
+  if (text.includes(',') && text.includes('.')) {
+    text = text.replace(/\./g, '').replace(',', '.');
+  } else {
+    text = text.replace(',', '.');
+  }
+  const result = Number(text);
+  return Number.isFinite(result) ? result : 0;
+}
+
+export function parseNumber(value: unknown): number {
+  return parseMoney(value);
+}
 
 
 
@@ -120,17 +157,6 @@ type BackendProduct = {
   updated_at?: string;
   updatedAt?: string;
 };
-
-async function apiFetchWithFallback<T>(primaryEndpoint: string, fallbackEndpoint: string, options: RequestInit = {}): Promise<T> {
-  try {
-    return await apiFetch<T>(primaryEndpoint, options);
-  } catch (err: unknown) {
-    if (err instanceof Error && (err.message.includes('404') || err.message.includes('Not Found') || err.message.includes('endpoint not found'))) {
-      return await apiFetch<T>(fallbackEndpoint, options);
-    }
-    throw err;
-  }
-}
 
 function mapBackendProduct(product: BackendProduct): Product {
   return {
@@ -322,10 +348,7 @@ export const posService = {
     if (query.trim()) params.append('q', query.trim());
     if (showInactive) params.append('is_active', 'all');
 
-    const list = await apiFetchWithFallback<any[]>(
-      `/customers?${params.toString()}`,
-      `/admin/customers?${params.toString()}`
-    );
+    const list = await apiFetch<any[]>(`/customers?${params.toString()}`);
     const items = Array.isArray(list) ? list : [];
     return items.map(c => ({
       id: c.id,
@@ -339,6 +362,28 @@ export const posService = {
       createdAt: c.created_at,
       updatedAt: c.updated_at,
     }));
+  },
+
+  async getCustomerDetails(id: string | number): Promise<Customer> {
+    if (isMockMode()) {
+      const customers = getStoredCustomers();
+      const c = customers.find(item => String(item.id) === String(id));
+      if (!c) throw new Error('Cari bulunamadı');
+      return c;
+    }
+    const c = await apiFetch<any>(`/customers/${id}`);
+    return {
+      id: c.id,
+      name: c.name || '',
+      phone: c.phone || '',
+      address: c.address || '',
+      note: c.note || '',
+      is_active: c.is_active ?? true,
+      credit_limit: c.credit_limit ? Number(c.credit_limit) : null,
+      balance: Number(c.balance || 0),
+      createdAt: c.created_at,
+      updatedAt: c.updated_at,
+    };
   },
 
   async getCustomerTransactions(
@@ -363,24 +408,48 @@ export const posService = {
     }
 
     const params = new URLSearchParams();
-    params.append('customer_id', String(customerId));
+    if (filters?.startDate) params.append('start_date', filters.startDate);
+    if (filters?.endDate) params.append('end_date', filters.endDate);
+    if (filters?.type && filters.type !== 'ALL') {
+      const typeMap: Record<string, string> = {
+        DEBT: 'debt',
+        PAYMENT: 'payment',
+        SALE: 'sale',
+        RETURN: 'return',
+      };
+      params.append('type', typeMap[filters.type] || filters.type.toLowerCase());
+    }
 
-    const list = await apiFetchWithFallback<any[]>(
-      `/customer-transactions?${params.toString()}`,
-      `/admin/customer-transactions?${params.toString()}`
-    );
+    const list = await apiFetch<any[]>(`/customers/${customerId}/transactions?${params.toString()}`);
     const items = Array.isArray(list) ? list : [];
-    return items.map(t => ({
-      id: String(t.id),
-      customerId: t.customer_id,
-      type: t.type === 'debt' ? 'SALE' : t.type === 'payment' ? 'PAYMENT' : t.type,
-      amount: Number(t.amount || 0),
-      balanceAfter: Number(t.balance_after || 0),
-      date: t.transaction_date ? t.transaction_date.split('T')[0] : '',
-      time: t.created_at ? new Date(t.created_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }) : '',
-      createdAt: t.created_at || new Date().toISOString(),
-      note: t.note || '',
-    }));
+    return items.map(t => {
+      let mappedType: CustomerTransactionType = 'DEBT';
+      if (t.type === 'payment') {
+        mappedType = 'PAYMENT';
+      } else if (t.type === 'return') {
+        mappedType = 'RETURN';
+      } else if (t.type === 'debt') {
+        if (t.sale_id || t.receipt_no || (t.note && t.note.toLowerCase().includes('satış'))) {
+          mappedType = 'SALE';
+        } else {
+          mappedType = 'DEBT';
+        }
+      }
+
+      return {
+        id: String(t.id),
+        customerId: t.customer_id,
+        type: mappedType,
+        amount: Number(t.amount || 0),
+        balanceAfter: Number(t.balance_after || 0),
+        date: t.transaction_date ? t.transaction_date.split('T')[0] : (t.created_at ? t.created_at.split('T')[0] : ''),
+        time: t.created_at ? new Date(t.created_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }) : '',
+        createdAt: t.created_at || new Date().toISOString(),
+        saleId: t.sale_id,
+        receiptNo: t.receipt_no,
+        note: t.note || '',
+      };
+    });
   },
 
   async getSaleDetail(saleIdOrReceiptNo: string | number): Promise<SaleRecord | null> {
@@ -427,7 +496,7 @@ export const posService = {
       return newCustomer;
     }
 
-    const c = await apiFetchWithFallback<any>('/customers', '/admin/customers', {
+    const c = await apiFetch<any>('/customers', {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -460,7 +529,7 @@ export const posService = {
       return customer;
     }
 
-    const c = await apiFetchWithFallback<any>(`/customers/${id}`, `/admin/customers/${id}`, {
+    const c = await apiFetch<any>(`/customers/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     });
@@ -489,15 +558,61 @@ export const posService = {
       return;
     }
 
-    await apiFetchWithFallback(`/customers/${id}`, `/admin/customers/${id}`, {
+    await apiFetch(`/customers/${id}`, {
       method: 'DELETE',
+    });
+  },
+
+  async addCustomerDebt(data: {
+    customerId: string | number;
+    amount: number;
+    note?: string;
+  }): Promise<CustomerTransaction> {
+    if (isMockMode()) {
+      await new Promise(r => setTimeout(r, 200));
+      const customers = getStoredCustomers();
+      const transactions = getStoredTransactions();
+
+      const cust = customers.find(c => String(c.id) === String(data.customerId));
+      if (!cust) throw new Error('Cari müşteri bulunamadı!');
+
+      cust.balance = Math.round((cust.balance + data.amount) * 100) / 100;
+      saveStoredCustomers(customers);
+
+      const now = new Date();
+      const newTx: CustomerTransaction = {
+        id: `TRX-${Date.now()}`,
+        customerId: cust.id,
+        type: 'DEBT',
+        amount: data.amount,
+        balanceAfter: cust.balance,
+        date: now.toISOString().split('T')[0],
+        time: `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`,
+        createdAt: now.toISOString(),
+        note: data.note || 'Manuel Borç Ekleme',
+      };
+
+      transactions.unshift(newTx);
+      saveStoredTransactions(transactions);
+      return newTx;
+    }
+
+    return await apiFetch<any>(`/customers/${data.customerId}/transactions`, {
+      method: 'POST',
+      body: JSON.stringify({
+        customer_id: Number(data.customerId),
+        type: 'debt',
+        amount: data.amount,
+        transaction_date: new Date().toISOString().split('T')[0],
+        note: data.note || 'Manuel Borç Ekleme',
+      }),
     });
   },
 
   async createCustomerPayment(data: {
     customerId: string | number;
     amount: number;
-    paymentMethod: 'CASH' | 'CARD';
+    paymentMethod?: 'CASH' | 'CARD';
     note?: string;
     cashierName?: string;
     kasaId?: number;
@@ -528,8 +643,8 @@ export const posService = {
         date: dateStr,
         time: timeStr,
         createdAt: now.toISOString(),
-        paymentMethod: data.paymentMethod,
-        note: data.note || (data.paymentMethod === 'CASH' ? 'Nakit Cari Tahsilat' : 'Kredi Kartı Cari Tahsilat'),
+        paymentMethod: data.paymentMethod || 'CASH',
+        note: data.note || (data.paymentMethod === 'CARD' ? 'Kredi Kartı Cari Tahsilat' : 'Nakit Cari Tahsilat'),
         cashierName: data.cashierName || 'Kasiyer',
         kasaId: (data.kasaId || 1) as 1 | 2 | 3 | 4 | 5,
       };
@@ -540,14 +655,14 @@ export const posService = {
       return newTx;
     }
 
-    return await apiFetch<CustomerTransaction>(`/customer-transactions`, {
+    return await apiFetch<any>(`/customers/${data.customerId}/transactions`, {
       method: 'POST',
       body: JSON.stringify({
         customer_id: Number(data.customerId),
         type: 'payment',
         amount: data.amount,
         transaction_date: new Date().toISOString().split('T')[0],
-        note: data.note || (data.paymentMethod === 'CASH' ? 'Nakit Cari Tahsilat' : 'Kredi Kartı Cari Tahsilat'),
+        note: data.note || (data.paymentMethod === 'CARD' ? 'Kredi Kartı Cari Tahsilat' : 'Nakit Cari Tahsilat'),
       }),
     });
   },
@@ -565,7 +680,9 @@ export const posService = {
   },
 
   async findProductByBarcode(barcode: string): Promise<Product | null> {
-    const cleanBarcode = barcode.trim();
+    const cleanBarcode = normalizeBarcode(barcode);
+    if (!cleanBarcode) return null;
+
     if (isMockMode()) {
       const products = getStoredProducts().filter(p => p.isActive !== false);
       const lowered = cleanBarcode.toLowerCase();
@@ -577,13 +694,70 @@ export const posService = {
 
     try {
       const product = await apiFetch<BackendProduct>(`/products/barcode/${encodeURIComponent(cleanBarcode)}`);
-      return mapBackendProduct(product);
-    } catch (error) {
-      if (error instanceof Error && error.message.includes('404')) {
+      return product ? mapBackendProduct(product) : null;
+    } catch (error: any) {
+      const is404 =
+        error?.status === 404 ||
+        error?.response?.status === 404 ||
+        (error instanceof Error && (
+          error.message.includes('404') ||
+          error.message.toLowerCase().includes('not found') ||
+          error.message.toLowerCase().includes('bulunamadı')
+        ));
+      if (is404) {
         return null;
       }
       throw error;
     }
+  },
+
+  async createInitialStockMovement(
+    productId: number | string,
+    quantity: number,
+    unitPrice: number = 0,
+    note: string = 'CSV ile ilk stok girişi'
+  ): Promise<void> {
+    if (!quantity || quantity <= 0) return;
+
+    if (isMockMode()) {
+      const products = getStoredProducts();
+      const movements = getStoredStockMovements();
+      const prod = products.find(p => String(p.id) === String(productId));
+      if (prod) {
+        const previousStock = prod.stock;
+        prod.stock += quantity;
+        prod.updatedAt = new Date().toISOString();
+        movements.unshift({
+          id: `SM-${Date.now()}-${productId}`,
+          productId: prod.id,
+          productName: prod.name,
+          barcode: prod.barcode,
+          quantity,
+          movementType: 'STOCK_IN',
+          previousStock,
+          newStock: prod.stock,
+          note,
+          createdAt: new Date().toISOString(),
+          createdBy: 'Admin',
+        });
+        saveStoredProducts(products);
+        saveStoredStockMovements(movements);
+      }
+      return;
+    }
+
+    const today = new Date().toISOString().slice(0, 10);
+    await apiFetch('/stock-movements', {
+      method: 'POST',
+      body: JSON.stringify({
+        product_id: Number(productId),
+        movement_date: today,
+        type: 'in',
+        quantity: Number(quantity),
+        unit_price: Number(unitPrice || 0),
+        note,
+      }),
+    });
   },
 
   // ==================== SALES ====================
@@ -1107,7 +1281,7 @@ export const posService = {
       note: note || '',
     };
 
-    const res = await apiFetchWithFallback<any>('/stock-movements', '/admin/stock-movements', {
+    const res = await apiFetch<any>('/stock-movements', {
       method: 'POST',
       body: JSON.stringify(body),
     });
@@ -1125,7 +1299,7 @@ export const posService = {
     }
 
     const params = productId ? `?product_id=${productId}` : '';
-    const res = await apiFetchWithFallback<any[]>(`/stock-movements${params}`, `/admin/stock-movements${params}`);
+    const res = await apiFetch<any[]>(`/stock-movements${params}`);
     return Array.isArray(res) ? res.map(mapBackendStockMovementToFrontend) : [];
   },
 
@@ -1182,7 +1356,7 @@ export const posService = {
       note: e.note || 'Toplu stok girişi',
     }));
 
-    const res = await apiFetchWithFallback<any[]>('/stock-movements/bulk', '/admin/stock-movements/bulk', {
+    const res = await apiFetch<any[]>('/stock-movements/bulk', {
       method: 'POST',
       body: JSON.stringify({ entries: formattedEntries }),
     });
@@ -1359,10 +1533,10 @@ export const posService = {
       const cols = line.split(';').map(col => col.trim());
       const read = (index: number) => index >= 0 ? (cols[index] || '') : '';
 
-      const barcode = read(barcodeIndex);
+      const rawBarcode = read(barcodeIndex);
+      const barcode = normalizeBarcode(rawBarcode);
       const name = read(nameIndex);
       const priceStr = read(priceIndex);
-      // KDV dahil alış fiyatı varsa onu kullan; yoksa standart alış fiyatına düş.
       const purchasePriceStr = read(purchasePriceVatIndex) || read(purchasePriceIndex);
       const stockStr = read(stockIndex);
       const rawCategory = read(categoryIndex);
@@ -1403,8 +1577,8 @@ export const posService = {
         continue;
       }
 
-      const price = parseFloat(priceStr.replace(',', '.'));
-      if (isNaN(price) || price <= 0) {
+      const price = parseMoney(priceStr);
+      if (price <= 0) {
         item.status = 'ERROR';
         item.errorMessage = 'Geçersiz satış fiyatı';
         results.push(item);
@@ -1413,20 +1587,20 @@ export const posService = {
       item.price = price;
 
       if (purchasePriceStr) {
-        const purchasePrice = parseFloat(purchasePriceStr.replace(',', '.'));
-        if (!isNaN(purchasePrice) && purchasePrice > 0) {
+        const purchasePrice = parseMoney(purchasePriceStr);
+        if (purchasePrice > 0) {
           item.purchasePrice = purchasePrice;
         }
       }
 
       if (stockStr) {
-        const stock = parseFloat(stockStr.replace(',', '.'));
-        if (!isNaN(stock) && stock >= 0) {
+        const stock = parseMoney(stockStr);
+        if (stock >= 0) {
           item.stock = stock;
         }
       }
 
-      const existing = products.find(product => product.barcode === barcode);
+      const existing = products.find(product => normalizeBarcode(product.barcode) === barcode);
       if (existing) {
         item.status = 'EXISTS';
         item.existingProduct = existing;
@@ -1443,23 +1617,44 @@ export const posService = {
     existingAction: 'SKIP' | 'UPDATE_INFO' | 'ADD_STOCK_ONLY',
     createdBy: string,
     role?: string
-  ): Promise<{ created: number; updated: number; skipped: number; stockAdded: number }> {
+  ): Promise<BulkImportResult> {
     assertAdmin(role);
+
+    const result: BulkImportResult = {
+      created: 0,
+      updated: 0,
+      stockAdded: 0,
+      skipped: 0,
+      failed: 0,
+      errors: [],
+    };
+
     if (isMockMode()) {
-      await new Promise(r => setTimeout(r, 400));
+      await new Promise(r => setTimeout(r, 300));
       const products = getStoredProducts();
       const movements = getStoredStockMovements();
       const priceHistoryList = getStoredPriceHistory();
       const now = new Date().toISOString();
-      let created = 0, updated = 0, skipped = 0, stockAdded = 0;
 
       for (const item of items) {
-        if (item.status === 'ERROR') continue;
+        if (item.status === 'ERROR') {
+          result.failed++;
+          result.errors.push({
+            row: item.lineNumber,
+            barcode: item.barcode,
+            name: item.name,
+            error: item.errorMessage || 'Önizleme hatası',
+          });
+          continue;
+        }
 
-        if (item.status === 'NEW') {
+        const barcode = normalizeBarcode(item.barcode);
+        const existing = products.find(p => normalizeBarcode(p.barcode) === barcode);
+
+        if (!existing) {
           const newProduct: Product = {
             id: `PRD-${Date.now()}-${item.lineNumber}`,
-            barcode: item.barcode,
+            barcode,
             name: item.name,
             price: item.price,
             purchasePrice: item.purchasePrice,
@@ -1486,16 +1681,13 @@ export const posService = {
               createdAt: now,
               createdBy,
             });
+            result.stockAdded++;
           }
-          created++;
-        } else if (item.status === 'EXISTS' && item.existingProduct) {
-          const existing = products.find(p => p.barcode === item.barcode);
-          if (!existing) continue;
-
+          result.created++;
+        } else {
           if (existingAction === 'SKIP') {
-            skipped++;
+            result.skipped++;
           } else if (existingAction === 'UPDATE_INFO') {
-            // Track price change
             if (item.price !== existing.price) {
               priceHistoryList.unshift({
                 id: `PH-${Date.now()}-${item.lineNumber}`,
@@ -1531,8 +1723,9 @@ export const posService = {
                 createdAt: now,
                 createdBy,
               });
+              result.stockAdded++;
             }
-            updated++;
+            result.updated++;
           } else if (existingAction === 'ADD_STOCK_ONLY') {
             if (item.stock && item.stock > 0) {
               const prev = existing.stock;
@@ -1551,9 +1744,9 @@ export const posService = {
                 createdAt: now,
                 createdBy,
               });
-              stockAdded++;
+              result.stockAdded++;
             } else {
-              skipped++;
+              result.skipped++;
             }
           }
         }
@@ -1562,12 +1755,133 @@ export const posService = {
       saveStoredProducts(products);
       saveStoredStockMovements(movements);
       saveStoredPriceHistory(priceHistoryList);
-      return { created, updated, skipped, stockAdded };
+      return result;
     }
 
-    return await apiFetch<{ created: number; updated: number; skipped: number; stockAdded: number }>('/products/bulk-import', {
-      method: 'POST',
-      body: JSON.stringify({ items, existingAction, createdBy }),
-    });
+    // Non-mock mode: Process item-by-item over REST API
+    for (const item of items) {
+      if (item.status === 'ERROR') {
+        result.failed++;
+        result.errors.push({
+          row: item.lineNumber,
+          barcode: item.barcode,
+          name: item.name,
+          error: item.errorMessage || 'Önizleme hatası',
+        });
+        continue;
+      }
+
+      try {
+        const cleanBarcode = normalizeBarcode(item.barcode);
+        if (!cleanBarcode) {
+          result.failed++;
+          result.errors.push({
+            row: item.lineNumber,
+            barcode: item.barcode,
+            name: item.name,
+            error: 'Barkod boş olamaz',
+          });
+          continue;
+        }
+
+        // 1. Barkod ile mevcut ürünü ara (404 durumunda null döner)
+        const existingProduct = await posService.findProductByBarcode(cleanBarcode);
+
+        if (existingProduct) {
+          // 2. Ürün bulunursa: Duplicate ürün oluşturma, güncelle
+          if (existingAction === 'SKIP') {
+            result.skipped++;
+          } else if (existingAction === 'UPDATE_INFO') {
+            await posService.updateProduct(
+              existingProduct.id,
+              {
+                name: item.name,
+                barcode: cleanBarcode,
+                price: item.price,
+                purchasePrice: item.purchasePrice,
+                unit: item.unit,
+                category: item.category,
+              },
+              createdBy,
+              role
+            );
+
+            if (item.stock && item.stock > 0) {
+              await posService.createInitialStockMovement(
+                existingProduct.id,
+                item.stock,
+                item.purchasePrice || 0,
+                'Toplu import — bilgi güncelleme + stok ekleme'
+              );
+              result.stockAdded++;
+            }
+            result.updated++;
+          } else if (existingAction === 'ADD_STOCK_ONLY') {
+            if (item.stock && item.stock > 0) {
+              await posService.createInitialStockMovement(
+                existingProduct.id,
+                item.stock,
+                item.purchasePrice || 0,
+                'Toplu import — sadece stok ekleme'
+              );
+              result.stockAdded++;
+            } else {
+              result.skipped++;
+            }
+          }
+        } else {
+          // 3. Barkod sorgusu 404 dönerse: Yeni ürün oluştur
+          const createdProduct = await posService.createProduct(
+            {
+              barcode: cleanBarcode,
+              name: item.name,
+              price: item.price,
+              purchasePrice: item.purchasePrice,
+              stock: 0,
+              unit: item.unit || 'Adet',
+              category: item.category,
+            },
+            createdBy,
+            role
+          );
+
+          if (!createdProduct || !createdProduct.id) {
+            throw new Error('Yeni ürün oluşturuldu fakat product ID alınamadı.');
+          }
+
+          if (item.stock && item.stock > 0) {
+            await posService.createInitialStockMovement(
+              createdProduct.id,
+              item.stock,
+              item.purchasePrice || 0,
+              'CSV ile ilk stok girişi'
+            );
+            result.stockAdded++;
+          }
+
+          result.created++;
+        }
+      } catch (error: any) {
+        // Oturum veya yetki hatalarında tüm aktarımı durdur
+        if (error?.status === 401 || error?.status === 403) {
+          throw error;
+        }
+
+        result.failed++;
+        const errorMessage =
+          error?.response?.data?.error ||
+          error?.message ||
+          'Bilinmeyen hata';
+
+        result.errors.push({
+          row: item.lineNumber,
+          barcode: item.barcode,
+          name: item.name,
+          error: errorMessage,
+        });
+      }
+    }
+
+    return result;
   },
 };

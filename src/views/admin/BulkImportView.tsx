@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { BulkImportPreviewItem, BulkImportAction, Category } from '../../types/pos';
+import { BulkImportPreviewItem, BulkImportAction, Category, BulkImportResult } from '../../types/pos';
 import { posService } from '../../api/posService';
 import { useAuth } from '../../context/AuthContext';
 import { 
@@ -18,6 +18,7 @@ export const BulkImportView: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
   const [previewItems, setPreviewItems] = useState<BulkImportPreviewItem[]>([]);
   const [existingAction, setExistingAction] = useState<BulkImportAction>('UPDATE_INFO');
+  const [importResult, setImportResult] = useState<BulkImportResult | null>(null);
   
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -35,6 +36,7 @@ export const BulkImportView: React.FC = () => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setErrorMsg('');
     setSuccessMsg('');
+    setImportResult(null);
     setPreviewItems([]);
     
     if (e.target.files && e.target.files.length > 0) {
@@ -87,6 +89,7 @@ export const BulkImportView: React.FC = () => {
     setLoading(true);
     setErrorMsg('');
     setSuccessMsg('');
+    setImportResult(null);
     
     try {
       const result = await posService.executeBulkImport(
@@ -96,8 +99,9 @@ export const BulkImportView: React.FC = () => {
         cashier?.role
       );
       
+      setImportResult(result);
       setSuccessMsg(
-        `İşlem tamamlandı! ${result.created} yeni ürün eklendi, ${result.updated} ürün güncellendi, ${result.stockAdded} ürünün stoğu arttırıldı, ${result.skipped} ürün atlandı.`
+        `CSV aktarımı tamamlandı. Yeni ürün: ${result.created}, Güncellenen ürün: ${result.updated}, Stok girişi: ${result.stockAdded}, Atlanan: ${result.skipped}${result.failed > 0 ? `, Hatalı: ${result.failed}` : ''}`
       );
       setPreviewItems([]);
       setFile(null);
@@ -162,6 +166,22 @@ export const BulkImportView: React.FC = () => {
         </div>
       )}
 
+      {importResult && importResult.errors.length > 0 && (
+        <div className="mb-6 bg-red-50 border border-red-200 text-red-800 p-4 rounded-xl shrink-0">
+          <h4 className="font-bold text-sm mb-2 flex items-center space-x-2">
+            <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />
+            <span>Aktarılamayan Hatalı Satırlar ({importResult.errors.length})</span>
+          </h4>
+          <ul className="text-xs space-y-1 max-h-40 overflow-auto font-mono bg-white/60 p-2 rounded-lg border border-red-100">
+            {importResult.errors.map((err, idx) => (
+              <li key={idx} className="text-red-700">
+                Satır {err.row} - Barkod: {err.barcode || 'Boş'} - {err.name ? `${err.name} - ` : ''}{err.error}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <div className="bg-white p-6 rounded-2xl shadow-xs border border-gray-100 mb-6 shrink-0">
         <label className="block w-full cursor-pointer">
           <input
@@ -208,7 +228,7 @@ export const BulkImportView: React.FC = () => {
 
               <button
                 onClick={handleExecuteImport}
-                disabled={loading || stats.error > 0}
+                disabled={loading || (stats.new === 0 && stats.exists === 0)}
                 className="bg-zeytin-600 hover:bg-zeytin-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-5 py-2 rounded-lg font-bold flex items-center space-x-2 shadow-md transition-colors shrink-0"
               >
                 <Play className="w-4 h-4" fill="currentColor" />

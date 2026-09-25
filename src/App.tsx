@@ -6,6 +6,8 @@ import { PosView } from './views/PosView';
 import { EndOfDayView } from './views/EndOfDayView';
 import { AdminView } from './views/AdminView';
 
+import { GlobalWarningDialog } from './components/GlobalWarningDialog';
+
 const AppContent: React.FC = () => {
   const { activeView } = useAuth();
 
@@ -18,18 +20,17 @@ const AppContent: React.FC = () => {
       return <AdminView />;
     case 'POS':
     default:
-      return (
-        <PosProvider>
-          <PosView />
-        </PosProvider>
-      );
+      return <PosView />;
   }
 };
 
 export const App: React.FC = () => {
   return (
     <AuthProvider>
-      <AppContent />
+      <PosProvider>
+        <AppContent />
+        <GlobalWarningDialog />
+      </PosProvider>
     </AuthProvider>
   );
 };

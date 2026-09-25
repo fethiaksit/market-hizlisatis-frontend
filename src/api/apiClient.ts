@@ -41,7 +41,14 @@ export async function apiFetch<T>(endpoint: string, options: RequestInit = {}): 
       errorData.message ||
       errorData.detail ||
       `API Hatası: ${response.status} ${response.statusText}`;
-    throw new Error(errorMessage);
+    const error: any = new Error(errorMessage);
+    error.status = response.status;
+    error.response = {
+      status: response.status,
+      statusText: response.statusText,
+      data: errorData,
+    };
+    throw error;
   }
 
   const json = await response.json();

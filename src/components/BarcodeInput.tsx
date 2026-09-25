@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { usePos } from '../context/PosContext';
 import { formatCurrency } from '../utils/format';
-import { Barcode, Search, LayoutGrid, Delete, UserCheck, UserPlus, X, History } from 'lucide-react';
+import { Barcode, Search, LayoutGrid, Delete, UserCheck, UserPlus, X, History, Camera } from 'lucide-react';
+import { BarcodeScanner } from './BarcodeScanner';
 
 interface BarcodeInputProps {
   inputRef: React.RefObject<HTMLInputElement>;
@@ -10,6 +11,7 @@ interface BarcodeInputProps {
 export const BarcodeInput: React.FC<BarcodeInputProps> = ({ inputRef }) => {
   const [value, setValue] = useState('');
   const [isSearching, setIsSearching] = useState(false);
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
   const {
     handleBarcodeScan,
     setProductsModalOpen,
@@ -23,8 +25,10 @@ export const BarcodeInput: React.FC<BarcodeInputProps> = ({ inputRef }) => {
 
   // Keep input focused automatically
   useEffect(() => {
-    inputRef.current?.focus();
-  }, [inputRef]);
+    if (!isCameraOpen) {
+      inputRef.current?.focus();
+    }
+  }, [inputRef, isCameraOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,6 +45,14 @@ export const BarcodeInput: React.FC<BarcodeInputProps> = ({ inputRef }) => {
     setTimeout(() => {
       inputRef.current?.focus();
     }, 50);
+  };
+
+  const handleCameraScan = async (scannedCode: string) => {
+    if (!scannedCode) return;
+    await handleBarcodeScan(scannedCode);
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 100);
   };
 
   const handleClear = () => {
@@ -98,6 +110,17 @@ export const BarcodeInput: React.FC<BarcodeInputProps> = ({ inputRef }) => {
           </div>
         </form>
 
+        {/* Camera Barcode Scanner Button */}
+        <button
+          type="button"
+          onClick={() => setIsCameraOpen(true)}
+          className="bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white font-extrabold px-3 py-2 rounded-xl text-xs transition-all shadow-2xs flex items-center space-x-1.5 shrink-0 cursor-pointer h-10 sm:h-11 border border-amber-500 hover:scale-[1.01]"
+          title="Kamera ile Barkod Okut"
+        >
+          <Camera className="w-4.5 h-4.5 text-amber-100" />
+          <span className="hidden xs:inline sm:inline font-bold">Kamera</span>
+        </button>
+
         {/* Cari Seç Butonu */}
         <button
           type="button"
@@ -136,6 +159,13 @@ export const BarcodeInput: React.FC<BarcodeInputProps> = ({ inputRef }) => {
           </span>
         </button>
       </div>
+
+      {/* Barcode Scanner Modal Component */}
+      <BarcodeScanner
+        isOpen={isCameraOpen}
+        onClose={() => setIsCameraOpen(false)}
+        onScan={handleCameraScan}
+      />
 
       {/* Selected Customer Inline Bar */}
       {selectedCustomer && (

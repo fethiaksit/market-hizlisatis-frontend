@@ -43,7 +43,7 @@ export interface Customer {
   updatedAt?: string;
 }
 
-export type CustomerTransactionType = 'SALE' | 'PAYMENT' | 'RETURN';
+export type CustomerTransactionType = 'DEBT' | 'PAYMENT' | 'SALE' | 'RETURN';
 
 export interface CustomerTransaction {
   id: string;
@@ -217,6 +217,22 @@ export interface BulkImportPreviewItem {
 }
 
 export type BulkImportAction = 'SKIP' | 'UPDATE_INFO' | 'ADD_STOCK_ONLY';
+
+export interface BulkImportRowError {
+  row: number;
+  barcode?: string;
+  name?: string;
+  error: string;
+}
+
+export interface BulkImportResult {
+  created: number;
+  updated: number;
+  stockAdded: number;
+  skipped: number;
+  failed: number;
+  errors: BulkImportRowError[];
+}
 
 export type AdminPage = 'DASHBOARD' | 'CATEGORIES' | 'PRODUCTS' | 'ADD_PRODUCT' | 'STOCK_ENTRY' | 'BULK_IMPORT' | 'PDF_IMPORT' | 'PRICE_MANAGEMENT' | 'EMPLOYEES' | 'CUSTOMERS';
 

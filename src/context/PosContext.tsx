@@ -290,16 +290,21 @@ export const PosProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     try {
       const product = await posService.findProductByBarcode(term);
       if (product) {
+        if (product.stock <= 0) {
+          PosAudio.playErrorTone();
+          showToast('Ürün stokta yok.', 'error');
+          return false;
+        }
         addToCart(product, 1);
         return true;
       } else {
         PosAudio.playErrorTone();
-        showToast(`Ürün bulunamadı: "${term}"`, 'error');
+        showToast('Bu barkoda ait ürün bulunamadı.', 'error');
         return false;
       }
     } catch {
       PosAudio.playErrorTone();
-      showToast('Ürün arama hatası', 'error');
+      showToast('Bu barkoda ait ürün bulunamadı.', 'error');
       return false;
     }
   }, [addToCart, showToast]);

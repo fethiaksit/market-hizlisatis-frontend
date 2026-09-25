@@ -3,7 +3,9 @@ import { Customer, CustomerTransaction, CustomerTransactionType } from '../types
 import { posService } from '../api/posService';
 import { usePos } from '../context/PosContext';
 import { formatCurrency } from '../utils/format';
+import { warningBus } from '../utils/warningBus';
 import { CustomerPaymentModal } from './CustomerPaymentModal';
+import { CustomerDebtModal } from './CustomerDebtModal';
 import { ReceiptDetailModal } from './ReceiptDetailModal';
 import { 
   Users, 
@@ -17,7 +19,8 @@ import {
   Receipt, 
   UserCheck, 
   Loader2,
-  ChevronRight
+  ChevronRight,
+  PlusCircle
 } from 'lucide-react';
 
 interface CustomerDetailModalProps {
@@ -29,7 +32,9 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({
   customer,
   onClose,
 }) => {
-  const { setCustomerForActiveKasa, showToast } = usePos();
+  const { setCustomerForActiveKasa, showToast, refreshCustomers } = usePos();
+
+  const [currentCustomer, setCurrentCustomer] = useState<Customer | null>(customer);
   const [transactions, setTransactions] = useState<CustomerTransaction[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -40,34 +45,57 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({
 
   // Sub-modals
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [isDebtModalOpen, setIsDebtModalOpen] = useState(false);
   const [selectedReceiptNo, setSelectedReceiptNo] = useState<string | null>(null);
 
+  // Keep currentCustomer updated when prop changes
+  useEffect(() => {
+    setCurrentCustomer(customer);
+  }, [customer]);
+
+  const refreshCustomerDetails = useCallback(async () => {
+    if (!currentCustomer) return;
+    try {
+      const updated = await posService.getCustomerDetails(currentCustomer.id);
+      setCurrentCustomer(updated);
+    } catch {
+      // Keep existing currentCustomer if details fetch fails
+    }
+  }, [currentCustomer?.id]);
+
   const loadTransactions = useCallback(async () => {
-    if (!customer) return;
+    if (!currentCustomer) return;
     setLoading(true);
     try {
-      const data = await posService.getCustomerTransactions(customer.id, {
+      const data = await posService.getCustomerTransactions(currentCustomer.id, {
         startDate: startDate || undefined,
         endDate: endDate || undefined,
         type: selectedType !== 'ALL' ? selectedType : undefined,
       });
       setTransactions(data);
-    } catch {
-      // Ignore
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Hareketler yüklenemedi.';
+      warningBus.showWarning(msg, 'Ekstre Yükleme Hatası');
     } finally {
       setLoading(false);
     }
-  }, [customer, startDate, endDate, selectedType]);
+  }, [currentCustomer?.id, startDate, endDate, selectedType]);
 
   useEffect(() => {
     loadTransactions();
   }, [loadTransactions]);
 
-  if (!customer) return null;
+  const handleTransactionSaved = async () => {
+    await refreshCustomerDetails();
+    await refreshCustomers();
+    await loadTransactions();
+  };
+
+  if (!currentCustomer) return null;
 
   const handleSelectForSale = () => {
-    setCustomerForActiveKasa(customer);
-    showToast(`Cari satışa seçildi: ${customer.name}`, 'success');
+    setCustomerForActiveKasa(currentCustomer);
+    showToast(`Cari satışa seçildi: ${currentCustomer.name}`, 'success');
     onClose();
   };
 
@@ -96,17 +124,17 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({
         {/* Customer Profile & Balance Overview */}
         <div className="bg-gradient-to-r from-gray-900 to-zeytin-950 text-white p-4 shrink-0 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-inner">
           <div>
-            <h2 className="text-lg sm:text-xl font-black">{customer.name}</h2>
+            <h2 className="text-lg sm:text-xl font-black">{currentCustomer.name}</h2>
             <div className="flex flex-wrap items-center gap-2 text-xs text-zeytin-200 mt-0.5">
-              {customer.phone && (
+              {currentCustomer.phone && (
                 <span className="flex items-center gap-1 font-mono">
                   <Phone className="w-3.5 h-3.5" />
-                  {customer.phone}
+                  {currentCustomer.phone}
                 </span>
               )}
-              {customer.note && (
+              {currentCustomer.note && (
                 <span className="text-gray-400">
-                  • {customer.note}
+                  • {currentCustomer.note}
                 </span>
               )}
             </div>
@@ -118,13 +146,22 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({
                 GÜNCEL BAKİYE
               </span>
               <span className={`text-xl font-black ${
-                customer.balance > 0 ? 'text-red-400' : 'text-emerald-400'
+                currentCustomer.balance > 0 ? 'text-red-400' : 'text-emerald-400'
               }`}>
-                {formatCurrency(customer.balance)} {customer.balance > 0 ? 'Borç' : ''}
+                {formatCurrency(currentCustomer.balance)} {currentCustomer.balance > 0 ? 'Borç' : ''}
               </span>
             </div>
 
             <div className="flex items-center space-x-1.5">
+              <button
+                type="button"
+                onClick={() => setIsDebtModalOpen(true)}
+                className="py-2 px-3 bg-amber-700 hover:bg-amber-600 active:bg-amber-800 text-white font-extrabold rounded-xl text-xs flex items-center space-x-1 shadow-sm transition-all cursor-pointer whitespace-nowrap"
+              >
+                <PlusCircle className="w-4 h-4" />
+                <span>Borç Ekle</span>
+              </button>
+
               <button
                 type="button"
                 onClick={() => setIsPaymentModalOpen(true)}
@@ -156,8 +193,9 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({
             </span>
             {[
               { id: 'ALL', label: 'Tümü' },
-              { id: 'SALE', label: 'Alışveriş' },
+              { id: 'DEBT', label: 'Borç' },
               { id: 'PAYMENT', label: 'Tahsilat' },
+              { id: 'SALE', label: 'Satış' },
               { id: 'RETURN', label: 'İade' },
             ].map((tab) => (
               <button
@@ -201,12 +239,12 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({
           {loading ? (
             <div className="p-12 text-center text-gray-500 flex items-center justify-center space-x-2">
               <Loader2 className="w-5 h-5 animate-spin text-zeytin-700" />
-              <span className="text-xs font-bold">Hareketler yükleniyor...</span>
+              <span className="text-xs font-bold">Ekstre hareketleri yükleniyor...</span>
             </div>
           ) : transactions.length === 0 ? (
             <div className="p-12 text-center text-gray-400 text-xs">
               <Receipt className="w-8 h-8 mx-auto mb-2 text-gray-300" />
-              <p className="font-bold text-gray-600">Bu kritere uygun hareket bulunamadı.</p>
+              <p className="font-bold text-gray-600">Bu kritere uygun cari hareket bulunamadı.</p>
             </div>
           ) : (
             transactions.map((tx) => (
@@ -217,12 +255,15 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({
                 {/* Left: Icon & Description */}
                 <div className="flex items-center space-x-3 min-w-0 flex-1">
                   <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
-                    tx.type === 'SALE'
-                      ? 'bg-amber-100 text-amber-700'
+                    tx.type === 'DEBT'
+                      ? 'bg-amber-100 text-amber-800'
+                      : tx.type === 'SALE'
+                      ? 'bg-blue-100 text-blue-800'
                       : tx.type === 'PAYMENT'
-                      ? 'bg-emerald-100 text-emerald-700'
-                      : 'bg-blue-100 text-blue-700'
+                      ? 'bg-emerald-100 text-emerald-800'
+                      : 'bg-indigo-100 text-indigo-800'
                   }`}>
+                    {tx.type === 'DEBT' && <PlusCircle className="w-5 h-5" />}
                     {tx.type === 'SALE' && <ShoppingBag className="w-5 h-5" />}
                     {tx.type === 'PAYMENT' && <Coins className="w-5 h-5" />}
                     {tx.type === 'RETURN' && <RotateCcw className="w-5 h-5" />}
@@ -231,13 +272,15 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <span className={`px-2 py-0.2 rounded font-extrabold text-[10px] ${
-                        tx.type === 'SALE'
+                        tx.type === 'DEBT'
                           ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                          : tx.type === 'SALE'
+                          ? 'bg-blue-100 text-blue-900 border border-blue-300'
                           : tx.type === 'PAYMENT'
                           ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
-                          : 'bg-blue-100 text-blue-900 border border-blue-300'
+                          : 'bg-indigo-100 text-indigo-900 border border-indigo-300'
                       }`}>
-                        {tx.type === 'SALE' ? 'ALIŞVERİŞ' : tx.type === 'PAYMENT' ? 'CARİ TAHSİLAT' : 'İADE'}
+                        {tx.type === 'DEBT' ? 'BORÇ' : tx.type === 'SALE' ? 'SATIŞ' : tx.type === 'PAYMENT' ? 'TAHSİLAT' : 'İADE'}
                       </span>
 
                       <span className="text-xs font-bold text-gray-500">
@@ -246,21 +289,18 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({
                     </div>
 
                     <div className="text-xs text-gray-600 mt-1 flex flex-wrap items-center gap-2">
-                      {tx.receiptNo && (
-                        <span className="font-mono font-bold text-gray-900">
-                          {tx.receiptNo}
+                      {tx.note && (
+                        <span className="font-medium text-gray-800">
+                          {tx.note}
                         </span>
                       )}
-                      {tx.kasaId && (
-                        <span>• Kasa {tx.kasaId}</span>
+                      {tx.receiptNo && (
+                        <span className="font-mono font-bold text-gray-900">
+                          • {tx.receiptNo}
+                        </span>
                       )}
                       {tx.cashierName && (
                         <span className="text-gray-500">• {tx.cashierName}</span>
-                      )}
-                      {tx.paymentMethod && (
-                        <span className="text-gray-500 font-mono text-[10px] bg-gray-100 px-1.5 py-0.2 rounded">
-                          {tx.paymentMethod === 'CASH' ? 'Nakit' : tx.paymentMethod === 'CARD' ? 'Kart' : 'Cari'}
-                        </span>
                       )}
                     </div>
                   </div>
@@ -270,22 +310,24 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({
                 <div className="text-right shrink-0 flex items-center space-x-3">
                   <div>
                     <div className={`text-sm sm:text-base font-black ${
-                      tx.amount > 0 ? 'text-red-700' : 'text-emerald-700'
+                      tx.type === 'DEBT' || tx.type === 'SALE' ? 'text-red-700' : 'text-emerald-700'
                     }`}>
-                      {tx.amount > 0 ? `+${formatCurrency(tx.amount)}` : formatCurrency(tx.amount)}
+                      {tx.type === 'DEBT' || tx.type === 'SALE'
+                        ? `+${formatCurrency(tx.amount)}` 
+                        : `-${formatCurrency(tx.amount)}`}
                     </div>
                     <div className="text-[10px] text-gray-500 font-medium mt-0.5">
-                      Bakiye sonrası: <span className="font-bold text-gray-800">{formatCurrency(tx.balanceAfter)}</span>
+                      İşlem sonrası bakiye: <span className="font-bold text-gray-800">{formatCurrency(tx.balanceAfter)}</span>
                     </div>
                   </div>
 
-                  {/* Fiş Detayı Butonu (Only for SALE transactions) */}
+                  {/* Fiş Detayı Butonu (Only for SALE transactions with receiptNo) */}
                   {tx.receiptNo && (
                     <button
                       type="button"
                       onClick={() => setSelectedReceiptNo(tx.receiptNo || null)}
                       className="p-2 bg-gray-100 hover:bg-zeytin-100 hover:text-zeytin-900 text-gray-600 rounded-xl transition-colors cursor-pointer flex items-center space-x-1"
-                      title="Fiş ve Ürün Detayını Gör"
+                      title="Fiş Detayını Gör"
                     >
                       <Receipt className="w-4 h-4" />
                       <span className="text-xs font-bold hidden sm:inline">Detay</span>
@@ -300,7 +342,7 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({
 
         {/* Footer */}
         <div className="bg-gray-50 px-5 py-3 border-t border-gray-200 flex items-center justify-between text-xs text-gray-500 shrink-0">
-          <span>Toplam {transactions.length} hareket listelendi.</span>
+          <span>Toplam {transactions.length} cari hareket listelendi.</span>
           <button
             type="button"
             onClick={onClose}
@@ -312,10 +354,16 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({
       </div>
 
       {/* Sub-modals */}
+      <CustomerDebtModal
+        customer={isDebtModalOpen ? currentCustomer : null}
+        onClose={() => setIsDebtModalOpen(false)}
+        onDebtSaved={handleTransactionSaved}
+      />
+
       <CustomerPaymentModal
-        customer={isPaymentModalOpen ? customer : null}
+        customer={isPaymentModalOpen ? currentCustomer : null}
         onClose={() => setIsPaymentModalOpen(false)}
-        onPaymentSaved={loadTransactions}
+        onPaymentSaved={handleTransactionSaved}
       />
 
       <ReceiptDetailModal
