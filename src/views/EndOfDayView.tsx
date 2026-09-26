@@ -8,7 +8,7 @@ import {
   ArrowLeft, 
   Banknote, 
   CreditCard, 
-  UserCheck,
+  UserCheck, 
   TrendingUp, 
   Receipt, 
   RotateCcw, 
@@ -75,7 +75,7 @@ export const EndOfDayView: React.FC = () => {
             <FileSpreadsheet className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="text-lg font-black text-gray-900">
+            <h1 className="text-base sm:text-lg font-black text-gray-900">
               GÜN SONU & Z-RAPORU
             </h1>
             <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
@@ -88,10 +88,11 @@ export const EndOfDayView: React.FC = () => {
         <button
           type="button"
           onClick={goToLogin}
-          className="flex items-center space-x-1.5 bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold px-3.5 py-2 rounded-xl text-xs transition-colors cursor-pointer"
+          className="flex items-center space-x-1.5 bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold px-3.5 py-2.5 rounded-xl text-xs transition-colors cursor-pointer min-h-[40px]"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Açılış Ekranına Dön</span>
+          <span className="hidden sm:inline">Açılış Ekranına Dön</span>
+          <span className="sm:hidden">Çıkış</span>
         </button>
       </div>
 
@@ -117,7 +118,7 @@ export const EndOfDayView: React.FC = () => {
           </div>
         )}
 
-        {/* 6 Main Summary Metric Cards (Toplam Ciro, Nakit, Kart, Cari, İşlem, İptal) */}
+        {/* 6 Main Summary Metric Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
           {/* 1. Toplam Ciro */}
           <div className="bg-gradient-to-br from-zeytin-800 to-zeytin-950 text-white rounded-xl p-3 shadow-xs col-span-2 sm:col-span-1">
@@ -161,7 +162,7 @@ export const EndOfDayView: React.FC = () => {
             </span>
           </div>
 
-          {/* 4. Cari Satış (Açık Hesap) */}
+          {/* 4. Cari Satış */}
           <div className="bg-white border border-gray-200 rounded-xl p-3 shadow-2xs">
             <div className="flex items-center justify-between text-gray-500 mb-1">
               <span className="text-[10px] font-bold uppercase tracking-wider">Cari Satış</span>
@@ -204,79 +205,115 @@ export const EndOfDayView: React.FC = () => {
           </div>
         </div>
 
-        {/* Sales List Table */}
+        {/* Sales List Table & Mobile Cards */}
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-2xs">
           <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
             <h3 className="font-extrabold text-xs text-gray-800">
               Bugün Yapılan Satış Kayıtları
             </h3>
-            <span className="text-[11px] text-gray-500 font-medium">
+            <span className="text-[11px] text-gray-500 font-medium hidden sm:inline">
               ZeytinERP Cari & Kasa Hareketleri
             </span>
           </div>
 
-          <div className="overflow-x-auto max-h-64 divide-y divide-gray-100">
-            {(!summary?.sales || summary.sales.length === 0) ? (
-              <div className="p-6 text-center text-gray-400 font-medium text-xs">
-                Bugün henüz kayıtlı bir satış bulunmuyor.
-              </div>
-            ) : (
-              <table className="w-full text-left text-xs">
-                <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-[9px]">
-                  <tr>
-                    <th className="px-3 py-2">Fiş No</th>
-                    <th className="px-3 py-2">Saat</th>
-                    <th className="px-3 py-2">Kasa</th>
-                    <th className="px-3 py-2">Kasiyer</th>
-                    <th className="px-3 py-2">Cari Müşteri</th>
-                    <th className="px-3 py-2">Ürün Adedi</th>
-                    <th className="px-3 py-2">Ödeme Türü</th>
-                    <th className="px-3 py-2 text-right">Tutar</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100 text-gray-700">
-                  {summary.sales.map((sale) => (
-                    <tr key={sale.id} className="hover:bg-gray-50/80 font-medium">
-                      <td className="px-3 py-2 font-mono font-bold text-gray-900">{sale.receiptNo}</td>
-                      <td className="px-3 py-2 text-gray-500">{sale.time}</td>
-                      <td className="px-3 py-2">Kasa {sale.kasaId}</td>
-                      <td className="px-3 py-2">{sale.cashierName}</td>
-                      <td className="px-3 py-2">
-                        {sale.customerName ? (
-                          <span className="font-extrabold text-amber-900 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
-                            {sale.customerName}
-                          </span>
-                        ) : (
-                          <span className="text-gray-400">-</span>
-                        )}
-                      </td>
-                      <td className="px-3 py-2">{sale.itemsCount} adet</td>
-                      <td className="px-3 py-2">
-                        <span className={`px-2 py-0.5 rounded-md font-bold text-[10px] ${
-                          sale.paymentType === 'CASH'
-                            ? 'bg-emerald-100 text-emerald-800'
-                            : sale.paymentType === 'CARD'
-                            ? 'bg-blue-100 text-blue-800'
-                            : 'bg-amber-100 text-amber-800 border border-amber-300'
-                        }`}>
-                          {sale.paymentType === 'CASH' ? 'NAKİT' : sale.paymentType === 'CARD' ? 'KART' : 'CARİ'}
+          {(!summary?.sales || summary.sales.length === 0) ? (
+            <div className="p-6 text-center text-gray-400 font-medium text-xs">
+              Bugün henüz kayıtlı bir satış bulunmuyor.
+            </div>
+          ) : (
+            <>
+              {/* Mobile Card List (< md) */}
+              <div className="md:hidden divide-y divide-gray-100 max-h-80 overflow-y-auto">
+                {summary.sales.map((sale) => (
+                  <div key={sale.id} className="p-3 space-y-1.5 hover:bg-gray-50 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono font-bold text-xs text-gray-900">#{sale.receiptNo}</span>
+                      <span className="font-black text-sm text-gray-900">{formatCurrency(sale.total)}</span>
+                    </div>
+
+                    <div className="flex items-center justify-between text-xs text-gray-500">
+                      <span>{sale.time} · Kasa {sale.kasaId} · {sale.cashierName}</span>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                        sale.paymentType === 'CASH'
+                          ? 'bg-emerald-100 text-emerald-800'
+                          : sale.paymentType === 'CARD'
+                          ? 'bg-blue-100 text-blue-800'
+                          : 'bg-amber-100 text-amber-800 border border-amber-300'
+                      }`}>
+                        {sale.paymentType === 'CASH' ? 'NAKİT' : sale.paymentType === 'CARD' ? 'KART' : 'CARİ'}
+                      </span>
+                    </div>
+
+                    {sale.customerName && (
+                      <div className="text-xs">
+                        <span className="font-bold text-amber-900 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                          {sale.customerName}
                         </span>
-                      </td>
-                      <td className="px-3 py-2 text-right font-black text-gray-900">
-                        {formatCurrency(sale.total)}
-                      </td>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop Table View (>= md) */}
+              <div className="hidden md:block overflow-x-auto max-h-64 divide-y divide-gray-100">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-[9px] sticky top-0">
+                    <tr>
+                      <th className="px-3 py-2">Fiş No</th>
+                      <th className="px-3 py-2">Saat</th>
+                      <th className="px-3 py-2">Kasa</th>
+                      <th className="px-3 py-2">Kasiyer</th>
+                      <th className="px-3 py-2">Cari Müşteri</th>
+                      <th className="px-3 py-2">Ürün Adedi</th>
+                      <th className="px-3 py-2">Ödeme Türü</th>
+                      <th className="px-3 py-2 text-right">Tutar</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 text-gray-700">
+                    {summary.sales.map((sale) => (
+                      <tr key={sale.id} className="hover:bg-gray-50/80 font-medium">
+                        <td className="px-3 py-2 font-mono font-bold text-gray-900">{sale.receiptNo}</td>
+                        <td className="px-3 py-2 text-gray-500">{sale.time}</td>
+                        <td className="px-3 py-2">Kasa {sale.kasaId}</td>
+                        <td className="px-3 py-2">{sale.cashierName}</td>
+                        <td className="px-3 py-2">
+                          {sale.customerName ? (
+                            <span className="font-extrabold text-amber-900 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                              {sale.customerName}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400">-</span>
+                          )}
+                        </td>
+                        <td className="px-3 py-2">{sale.itemsCount} adet</td>
+                        <td className="px-3 py-2">
+                          <span className={`px-2 py-0.5 rounded-md font-bold text-[10px] ${
+                            sale.paymentType === 'CASH'
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : sale.paymentType === 'CARD'
+                              ? 'bg-blue-100 text-blue-800'
+                              : 'bg-amber-100 text-amber-800 border border-amber-300'
+                          }`}>
+                            {sale.paymentType === 'CASH' ? 'NAKİT' : sale.paymentType === 'CARD' ? 'KART' : 'CARİ'}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2 text-right font-black text-gray-900">
+                          {formatCurrency(sale.total)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
         </div>
 
         {/* Action Buttons */}
-        <div className="bg-white border border-gray-200 rounded-xl p-3 flex flex-col sm:flex-row items-center justify-between gap-2 shadow-2xs">
-          <div className="text-[11px] text-gray-500">
-            <span className="font-bold text-gray-700">Muhasebe Notu:</span>
+        <div className="bg-white border border-gray-200 rounded-xl p-3 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-2xs">
+          <div className="text-[11px] text-gray-500 text-center sm:text-left">
+            <span className="font-bold text-gray-700">Muhasebe Notu: </span>
             Cari satışlar ciroya dahildir ancak kasa nakit veya banka/POS girişine dahil edilmez.
           </div>
 
@@ -284,7 +321,7 @@ export const EndOfDayView: React.FC = () => {
             <button
               type="button"
               onClick={handlePrintZReport}
-              className="flex-1 sm:flex-none py-2 px-4 bg-gray-100 hover:bg-gray-200 active:bg-gray-300 text-gray-800 font-bold rounded-xl text-xs transition-colors cursor-pointer flex items-center justify-center space-x-1.5"
+              className="flex-1 sm:flex-none py-2.5 px-4 bg-gray-100 hover:bg-gray-200 active:bg-gray-300 text-gray-800 font-bold rounded-xl text-xs transition-colors cursor-pointer flex items-center justify-center space-x-1.5 min-h-[44px]"
             >
               <Printer className="w-3.5 h-3.5" />
               <span>Z-Raporu Yazdır</span>
@@ -294,7 +331,7 @@ export const EndOfDayView: React.FC = () => {
               type="button"
               disabled={isClosing || summary?.isClosed}
               onClick={handleCloseDay}
-              className={`flex-1 sm:flex-none py-2.5 px-5 rounded-xl font-black text-xs transition-all cursor-pointer shadow-xs flex items-center justify-center space-x-1.5 ${
+              className={`flex-1 sm:flex-none py-2.5 px-5 rounded-xl font-black text-xs transition-all cursor-pointer shadow-xs flex items-center justify-center space-x-1.5 min-h-[44px] ${
                 summary?.isClosed
                   ? 'bg-emerald-700 text-white cursor-default'
                   : 'bg-red-600 hover:bg-red-700 text-white active:scale-98'

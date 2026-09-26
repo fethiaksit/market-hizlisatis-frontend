@@ -15,8 +15,8 @@ export const KasaTabs: React.FC = () => {
   const { activeKasa, setActiveKasa, kasas } = usePos();
 
   return (
-    <div className="bg-white border-b border-gray-200 px-3 py-1.5 flex items-center justify-between shadow-2xs shrink-0">
-      <div className="flex items-center space-x-2 w-full">
+    <div className="bg-white border-b border-gray-200 px-2 sm:px-3 py-1.5 flex items-center shadow-2xs shrink-0 overflow-x-auto scrollbar-none">
+      <div className="flex items-center space-x-1.5 sm:space-x-2 w-full min-w-max sm:min-w-0">
         {KASALAR.map((kasa) => {
           const isActive = activeKasa === kasa.id;
           const kasaData = kasas[kasa.id];
@@ -28,7 +28,7 @@ export const KasaTabs: React.FC = () => {
               key={kasa.id}
               type="button"
               onClick={() => setActiveKasa(kasa.id)}
-              className={`flex-1 py-1.5 px-2 rounded-xl font-bold flex items-center justify-center space-x-1.5 transition-all cursor-pointer relative text-xs sm:text-sm ${
+              className={`flex-1 min-w-[72px] sm:min-w-0 py-1.5 px-2 rounded-xl font-bold flex items-center justify-center space-x-1.5 transition-all cursor-pointer relative text-xs sm:text-sm shrink-0 sm:shrink ${
                 isActive
                   ? 'bg-zeytin-700 text-white shadow-sm ring-2 ring-zeytin-500 scale-[1.01]'
                   : hasItems
@@ -36,9 +36,9 @@ export const KasaTabs: React.FC = () => {
                   : 'bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-200'
               }`}
             >
-              <div className="flex items-center space-x-1.5">
-                <span className="font-extrabold">{kasa.name}</span>
-                <span className={`text-[10px] font-mono px-1 py-0.2 rounded font-bold ${
+              <div className="flex items-center space-x-1">
+                <span className="font-extrabold whitespace-nowrap">{kasa.name}</span>
+                <span className={`text-[10px] font-mono px-1 py-0.2 rounded font-bold hidden sm:inline-block ${
                   isActive ? 'bg-zeytin-800 text-zeytin-200' : 'bg-gray-200 text-gray-600'
                 }`}>
                   {kasa.shortcut}
@@ -46,7 +46,7 @@ export const KasaTabs: React.FC = () => {
               </div>
 
               {hasItems && (
-                <span className={`flex items-center space-x-0.5 text-[11px] px-1.5 py-0.2 rounded-full font-black ${
+                <span className={`flex items-center space-x-0.5 text-[10px] sm:text-[11px] px-1.5 py-0.2 rounded-full font-black ${
                   isActive
                     ? 'bg-white text-zeytin-900'
                     : 'bg-amber-500 text-white animate-pulse'

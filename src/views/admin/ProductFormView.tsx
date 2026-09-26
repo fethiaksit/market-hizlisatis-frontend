@@ -7,7 +7,8 @@ import {
   Save,
   X,
   AlertTriangle,
-  Info
+  Star,
+  Image
 } from 'lucide-react';
 
 interface Props {
@@ -25,13 +26,15 @@ export const ProductFormView: React.FC<Props> = ({ productId, onClose }) => {
   const [categories, setCategories] = useState<Category[]>([]);
   
   const [formData, setFormData] = useState({
-    barcode: '',
     name: '',
-    price: '',
+    barcode: '',
+    category: '',
     purchasePrice: '',
+    price: '',
     stock: '0',
     unit: 'Adet',
-    category: ''
+    isQuickProduct: false,
+    imageUrl: '',
   });
 
   useEffect(() => {
@@ -59,25 +62,32 @@ export const ProductFormView: React.FC<Props> = ({ productId, onClose }) => {
       const product = products.find(p => String(p.id) === String(productId));
       if (product) {
         setFormData({
-          barcode: product.barcode,
           name: product.name,
-          price: product.price.toString(),
+          barcode: product.barcode,
+          category: product.category || '',
           purchasePrice: product.purchasePrice ? product.purchasePrice.toString() : '',
+          price: product.price.toString(),
           stock: product.stock.toString(),
-          unit: product.unit,
-          category: product.category || ''
+          unit: product.unit || 'Adet',
+          isQuickProduct: Boolean(product.isQuickProduct),
+          imageUrl: product.imageUrl || '',
         });
       } else {
         setError('Düzenlenecek ürün bulunamadı.');
       }
-    } catch (err) {
+    } catch {
       setError('Ürün bilgileri yüklenemedi.');
     }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    const { name, value, type } = e.target;
+    if (type === 'checkbox') {
+      const checked = (e.target as HTMLInputElement).checked;
+      setFormData(prev => ({ ...prev, [name]: checked }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
     setError(''); // Clear error on change
   };
 
@@ -85,21 +95,17 @@ export const ProductFormView: React.FC<Props> = ({ productId, onClose }) => {
     e.preventDefault();
     setError('');
     
-    // Validation
-    if (!formData.barcode.trim()) {
-      setError('Barkod alanı zorunludur.');
-      return;
-    }
+    // Validation in requested order
     if (!formData.name.trim()) {
       setError('Ürün adı alanı zorunludur.');
       return;
     }
-    const priceNum = parseFloat(formData.price.replace(',', '.'));
-    if (isNaN(priceNum) || priceNum <= 0) {
-      setError('Geçerli bir satış fiyatı giriniz.');
+
+    if (!formData.barcode.trim()) {
+      setError('Barkod alanı zorunludur.');
       return;
     }
-    
+
     let purchasePriceNum: number | undefined;
     if (formData.purchasePrice.trim()) {
       purchasePriceNum = parseFloat(formData.purchasePrice.replace(',', '.'));
@@ -109,18 +115,32 @@ export const ProductFormView: React.FC<Props> = ({ productId, onClose }) => {
       }
     }
 
+    const priceNum = parseFloat(formData.price.replace(',', '.'));
+    if (isNaN(priceNum) || priceNum <= 0) {
+      setError('Geçerli bir satış fiyatı giriniz.');
+      return;
+    }
+
+    // Favori ürün görsel kuralı (Kesin Kural: Section 7 & 13)
+    if (formData.isQuickProduct && !formData.imageUrl.trim()) {
+      setError('Favori ürün için ürün görseli gereklidir.');
+      return;
+    }
+
     setLoading(true);
     try {
       if (isEditing) {
         await posService.updateProduct(
           productId!,
           {
-            barcode: formData.barcode,
-            name: formData.name,
-            price: priceNum,
+            name: formData.name.trim(),
+            barcode: formData.barcode.trim(),
+            category: formData.category,
             purchasePrice: purchasePriceNum,
+            price: priceNum,
             unit: formData.unit,
-            category: formData.category
+            imageUrl: formData.imageUrl.trim(),
+            isQuickProduct: formData.isQuickProduct,
           },
           cashier?.name || 'Admin',
           cashier?.role
@@ -129,217 +149,280 @@ export const ProductFormView: React.FC<Props> = ({ productId, onClose }) => {
         const stockNum = parseInt(formData.stock, 10);
         await posService.createProduct(
           {
-            barcode: formData.barcode,
-            name: formData.name,
-            price: priceNum,
+            name: formData.name.trim(),
+            barcode: formData.barcode.trim(),
+            category: formData.category,
             purchasePrice: purchasePriceNum,
+            price: priceNum,
             stock: isNaN(stockNum) ? 0 : stockNum,
             unit: formData.unit,
-            category: formData.category
+            imageUrl: formData.imageUrl.trim(),
+            isQuickProduct: formData.isQuickProduct,
           },
           cashier?.name || 'Admin',
           cashier?.role
         );
       }
       onClose();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Kaydetme işlemi başarısız oldu.');
     } finally {
       setLoading(false);
     }
   };
 
   if (initialLoading) {
-    return <div className="p-6">Ürün bilgileri yükleniyor...</div>;
+    return (
+      <div className="p-8 flex justify-center items-center h-full text-gray-500">
+        Ürün bilgileri yükleniyor...
+      </div>
+    );
   }
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-2xl font-black text-gray-800 flex items-center space-x-2">
-            <PackagePlus className="w-6 h-6 text-zeytin-600" />
-            <span>{isEditing ? 'Ürün Düzenle' : 'Yeni Ürün Ekle'}</span>
-          </h2>
-          <p className="text-sm text-gray-500 mt-1">
-            {isEditing ? 'Mevcut ürünün bilgilerini güncelleyin.' : 'Kataloğa yeni bir ürün ekleyin.'}
-          </p>
+    <div className="p-3 sm:p-6 max-w-4xl mx-auto h-full overflow-y-auto">
+      <div className="flex items-center justify-between mb-4 sm:mb-6 shrink-0">
+        <div className="flex items-center space-x-3">
+          <div className="bg-zeytin-100 p-2.5 rounded-xl text-zeytin-700">
+            <PackagePlus className="w-6 h-6" />
+          </div>
+          <div>
+            <h2 className="text-xl sm:text-2xl font-black text-gray-800">
+              {isEditing ? 'Ürün Düzenle' : 'Yeni Ürün Ekle'}
+            </h2>
+            <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
+              {isEditing ? 'Mevcut ürün bilgilerini güncelleyin.' : 'Kataloğa yeni bir ürün tanımlayın.'}
+            </p>
+          </div>
         </div>
-        
+
         <button
           onClick={onClose}
-          type="button"
-          className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
+          className="p-2 text-gray-400 hover:text-gray-600 rounded-xl hover:bg-gray-100 transition-colors cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center"
         >
           <X className="w-6 h-6" />
         </button>
       </div>
 
       {error && (
-        <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl flex items-start space-x-3">
+        <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-2xl flex items-start space-x-3">
           <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
-          <div className="text-sm font-medium">{error}</div>
+          <div className="text-xs sm:text-sm font-medium">{error}</div>
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden">
-        <div className="p-6 space-y-6">
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Barkod */}
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-1">
-                Barkod <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                name="barcode"
-                value={formData.barcode}
-                onChange={handleInputChange}
-                disabled={isEditing} // Cannot change barcode once created
-                placeholder="Örn: 8690000000000"
-                className={`w-full px-4 py-2.5 border rounded-xl focus:ring-2 focus:ring-zeytin-500 focus:outline-none transition-colors ${
-                  isEditing ? 'bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed' : 'bg-gray-50 border-gray-300 text-gray-900'
-                }`}
-              />
-              {isEditing && (
-                <p className="text-xs text-gray-400 mt-1 flex items-center">
-                  <Info className="w-3 h-3 mr-1" /> Barkod değiştirilemez.
-                </p>
-              )}
-            </div>
+      <form onSubmit={handleSubmit} className="bg-white rounded-3xl p-4 sm:p-6 shadow-xs border border-gray-100 space-y-4">
+        {/* Mobile Single Column Form (Order as requested: Name -> Barcode -> Category -> Purchase Price -> Sale Price -> Stock -> Unit -> Favorite -> Image -> Save) */}
+        
+        {/* 1. Ürün Adı */}
+        <div>
+          <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">
+            Ürün Adı <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="text"
+            name="name"
+            value={formData.name}
+            onChange={handleInputChange}
+            placeholder="Örn: Ülker Çikolatalı Gofret"
+            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-zeytin-500 focus:outline-none text-base sm:text-sm font-semibold transition-colors bg-gray-50 focus:bg-white"
+            autoFocus
+          />
+        </div>
 
-            {/* Ürün Adı */}
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-1">
-                Ürün Adı <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleInputChange}
-                placeholder="Örn: Süzme Çiçek Balı 850g"
-                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-gray-900 focus:ring-2 focus:ring-zeytin-500 focus:outline-none transition-colors"
-              />
-            </div>
+        {/* 2. Barkod */}
+        <div>
+          <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">
+            Barkod <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="text"
+            name="barcode"
+            value={formData.barcode}
+            onChange={handleInputChange}
+            placeholder="Örn: 869000100001"
+            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-zeytin-500 focus:outline-none text-base sm:text-sm font-mono font-bold transition-colors bg-gray-50 focus:bg-white"
+          />
+        </div>
 
-            {/* Satış Fiyatı */}
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-1">
-                Satış Fiyatı (₺) <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                name="price"
-                value={formData.price}
-                onChange={handleInputChange}
-                placeholder="0.00"
-                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-gray-900 focus:ring-2 focus:ring-zeytin-500 focus:outline-none transition-colors font-mono"
-              />
-            </div>
+        {/* 3. Kategori */}
+        <div>
+          <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">
+            Kategori
+          </label>
+          <select
+            name="category"
+            value={formData.category}
+            onChange={handleInputChange}
+            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-zeytin-500 focus:outline-none text-base sm:text-sm font-semibold transition-colors bg-gray-50 focus:bg-white"
+          >
+            <option value="">Kategori Seçiniz</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.name}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
 
-            {/* Alış Fiyatı */}
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-1">
-                Alış Fiyatı (₺) <span className="text-gray-400 font-normal">(Opsiyonel)</span>
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                name="purchasePrice"
-                value={formData.purchasePrice}
-                onChange={handleInputChange}
-                placeholder="0.00"
-                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-gray-900 focus:ring-2 focus:ring-zeytin-500 focus:outline-none transition-colors font-mono"
-              />
-            </div>
+        {/* 4. Alış Fiyatı & 5. Satış Fiyatı */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">
+              Alış Fiyatı (₺)
+            </label>
+            <input
+              type="text"
+              name="purchasePrice"
+              value={formData.purchasePrice}
+              onChange={handleInputChange}
+              placeholder="0.00"
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-zeytin-500 focus:outline-none text-base sm:text-sm font-bold transition-colors bg-gray-50 focus:bg-white"
+            />
+          </div>
 
-            {/* Kategori */}
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-1">
-                Kategori
-              </label>
-              <select
-                name="category"
-                value={formData.category}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-gray-900 focus:ring-2 focus:ring-zeytin-500 focus:outline-none transition-colors"
-              >
-                <option value="">Kategori seçin</option>
-                {categories.map((category) => (
-                  <option key={category.id} value={category.name}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
-              {categories.length === 0 && (
-                <p className="text-xs text-amber-600 mt-1">Önce Kategoriler ekranından kategori ekleyin.</p>
-              )}
-            </div>
-
-            {/* Birim */}
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-1">
-                Birim
-              </label>
-              <select
-                name="unit"
-                value={formData.unit}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-gray-900 focus:ring-2 focus:ring-zeytin-500 focus:outline-none transition-colors"
-              >
-                <option value="Adet">Adet</option>
-                <option value="Kg">Kg</option>
-                <option value="Paket">Paket</option>
-                <option value="Koli">Koli</option>
-                <option value="Litre">Litre</option>
-              </select>
-            </div>
-
-            {/* Başlangıç Stoku (Sadece yeni eklemede) */}
-            {!isEditing && (
-              <div className="md:col-span-2 bg-blue-50/50 p-4 rounded-xl border border-blue-100">
-                <label className="block text-sm font-bold text-gray-700 mb-1">
-                  Başlangıç Stoku
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  name="stock"
-                  value={formData.stock}
-                  onChange={handleInputChange}
-                  className="w-full md:w-1/2 px-4 py-2.5 bg-white border border-gray-300 rounded-xl text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-colors font-mono"
-                />
-                <p className="text-xs text-gray-500 mt-2 flex items-center">
-                  <Info className="w-4 h-4 mr-1 text-blue-500" />
-                  0'dan büyük bir değer girerseniz otomatik olarak bir "Stok Girişi" (STOCK_IN) hareketi oluşturulur.
-                </p>
-              </div>
-            )}
+          <div>
+            <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">
+              Satış Fiyatı (₺) <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              name="price"
+              value={formData.price}
+              onChange={handleInputChange}
+              placeholder="0.00"
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-zeytin-500 focus:outline-none text-base sm:text-sm font-black text-zeytin-800 transition-colors bg-gray-50 focus:bg-white"
+            />
           </div>
         </div>
 
-        <div className="bg-gray-50 px-6 py-4 flex items-center justify-end space-x-3 border-t border-gray-100">
+        {/* 6. Stok & Birim */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">
+              {isEditing ? 'Mevcut Stok (Stok girişinden değiştirilir)' : 'Başlangıç Stoğu'}
+            </label>
+            <input
+              type="number"
+              name="stock"
+              value={formData.stock}
+              onChange={handleInputChange}
+              disabled={isEditing}
+              min="0"
+              className={`w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-zeytin-500 focus:outline-none text-base sm:text-sm font-bold transition-colors ${
+                isEditing ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'bg-gray-50 focus:bg-white'
+              }`}
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">
+              Birim
+            </label>
+            <select
+              name="unit"
+              value={formData.unit}
+              onChange={handleInputChange}
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-zeytin-500 focus:outline-none text-base sm:text-sm font-semibold transition-colors bg-gray-50 focus:bg-white"
+            >
+              <option value="Adet">Adet</option>
+              <option value="Kg">Kg</option>
+              <option value="Paket">Paket</option>
+              <option value="Koli">Koli</option>
+              <option value="Litre">Litre</option>
+            </select>
+          </div>
+        </div>
+
+        {/* 7. Favori Ürün Seçimi */}
+        <div className="bg-amber-50/60 border border-amber-200/80 rounded-2xl p-3.5 flex items-center justify-between">
+          <div className="flex items-center space-x-2.5">
+            <div className="p-2 bg-amber-100 rounded-xl text-amber-700">
+              <Star className="w-5 h-5 fill-amber-500 text-amber-500" />
+            </div>
+            <div>
+              <span className="font-extrabold text-sm text-gray-900 block">
+                Favori Ürün (Hızlı Satış Butonları)
+              </span>
+              <span className="text-[11px] text-amber-900 font-medium">
+                Seçilirse POS ekranında hızlı satış butonlarında görünür.
+              </span>
+            </div>
+          </div>
+
+          <label className="relative inline-flex items-center cursor-pointer min-h-[44px]">
+            <input
+              type="checkbox"
+              name="isQuickProduct"
+              checked={formData.isQuickProduct}
+              onChange={handleInputChange}
+              className="sr-only peer"
+            />
+            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[12px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+          </label>
+        </div>
+
+        {/* 8. Ürün Görseli / Görsel URL */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="block text-xs font-bold text-gray-700 uppercase">
+              Ürün Görseli / Görsel URL {formData.isQuickProduct && <span className="text-red-500 font-bold">* (Favori için zorunlu)</span>}
+            </label>
+            {formData.isQuickProduct && (
+              <span className="text-[10px] text-amber-800 font-bold bg-amber-100 px-2 py-0.5 rounded-full">
+                Favori için görsel zorunludur
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-3">
+            <input
+              type="text"
+              name="imageUrl"
+              value={formData.imageUrl}
+              onChange={handleInputChange}
+              placeholder="https://... veya server görsel yolu"
+              className="flex-1 px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-zeytin-500 focus:outline-none text-base sm:text-sm transition-colors bg-gray-50 focus:bg-white"
+            />
+
+            {/* Live image preview */}
+            <div className="w-14 h-14 rounded-2xl bg-gray-100 border border-gray-200 flex items-center justify-center overflow-hidden shrink-0 shadow-inner">
+              {formData.imageUrl.trim() ? (
+                <img 
+                  src={formData.imageUrl.trim()} 
+                  alt="Önizleme"
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    (e.target as HTMLElement).style.display = 'none';
+                  }}
+                />
+              ) : (
+                <Image className="w-6 h-6 text-gray-400" />
+              )}
+            </div>
+          </div>
+          <p className="text-[11px] text-gray-400">
+            Ürün görsel URL'si girildiğinde kalıcı olarak kaydedilir ve POS ekranında gösterilir.
+          </p>
+        </div>
+
+        {/* 9. Büyük Kaydet Butonu */}
+        <div className="pt-4 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-end gap-3">
           <button
             type="button"
             onClick={onClose}
-            className="px-5 py-2.5 text-sm font-bold text-gray-700 hover:bg-gray-200 bg-gray-100 rounded-xl transition-colors"
+            className="w-full sm:w-auto px-5 py-3 border border-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-50 transition-colors cursor-pointer min-h-[48px]"
           >
-            İptal
+            Vazgeç
           </button>
+
           <button
             type="submit"
             disabled={loading}
-            className={`px-6 py-2.5 text-sm font-bold text-white rounded-xl flex items-center space-x-2 shadow-md transition-colors ${
-              loading ? 'bg-zeytin-400 cursor-not-allowed' : 'bg-zeytin-600 hover:bg-zeytin-700'
-            }`}
+            className="w-full sm:w-auto px-8 py-3.5 bg-zeytin-600 hover:bg-zeytin-700 active:bg-zeytin-800 disabled:opacity-50 text-white font-black text-sm sm:text-base rounded-xl flex items-center justify-center space-x-2 shadow-lg transition-all cursor-pointer min-h-[48px]"
           >
-            <Save className="w-4 h-4" />
-            <span>{loading ? 'Kaydediliyor...' : 'Kaydet'}</span>
+            <Save className="w-5 h-5" />
+            <span>{loading ? 'Kaydediliyor...' : isEditing ? 'Değişiklikleri Kaydet' : 'Ürünü Kaydet'}</span>
           </button>
         </div>
       </form>

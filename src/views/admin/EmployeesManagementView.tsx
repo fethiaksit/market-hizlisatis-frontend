@@ -405,7 +405,7 @@ export const EmployeesManagementView: React.FC = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Ad Soyad, Kullanıcı Adı, Telefon veya Rol ara..."
-            className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-800 focus:outline-none focus:ring-2 focus:ring-zeytin-500 shadow-sm"
+            className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-base sm:text-sm font-medium text-gray-800 focus:outline-none focus:ring-2 focus:ring-zeytin-500 shadow-sm"
           />
         </div>
 
@@ -438,125 +438,224 @@ export const EmployeesManagementView: React.FC = () => {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-gray-50/80 border-b border-gray-200 text-[11px] font-black uppercase tracking-wider text-gray-500">
-                  <th className="py-3.5 px-4">Ad Soyad</th>
-                  <th className="py-3.5 px-4">Rol</th>
-                  <th className="py-3.5 px-4">Telefon / Kullanıcı Adı</th>
-                  <th className="py-3.5 px-4">Durum</th>
-                  <th className="py-3.5 px-4">Son Giriş</th>
-                  <th className="py-3.5 px-4 text-right">İşlemler</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 text-sm">
-                {filteredEmployees.map((emp) => (
-                  <tr key={emp.id} className="hover:bg-gray-50/60 transition-colors">
-                    {/* Full Name */}
-                    <td className="py-3.5 px-4 font-bold text-gray-900">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-9 h-9 bg-zeytin-100 text-zeytin-800 rounded-full flex items-center justify-center font-black text-xs shrink-0">
-                          {emp.firstName.charAt(0)}
-                          {emp.lastName.charAt(0)}
-                        </div>
-                        <div>
-                          <div className="font-black text-gray-900">{emp.fullName}</div>
-                          <div className="text-[11px] text-gray-400 font-normal">
-                            Kullanıcı: @{emp.username}
-                          </div>
-                        </div>
+          <>
+            {/* Mobile Card List View (< md) */}
+            <div className="md:hidden divide-y divide-gray-100">
+              {filteredEmployees.map((emp) => (
+                <div key={emp.id} className="p-4 space-y-3 hover:bg-gray-50/60 transition-colors">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center space-x-3 min-w-0">
+                      <div className="w-10 h-10 bg-zeytin-100 text-zeytin-800 rounded-full flex items-center justify-center font-black text-sm shrink-0">
+                        {emp.firstName.charAt(0)}
+                        {emp.lastName.charAt(0)}
                       </div>
-                    </td>
-
-                    {/* Role */}
-                    <td className="py-3.5 px-4">{getRoleBadge(emp.role)}</td>
-
-                    {/* Phone / Username */}
-                    <td className="py-3.5 px-4 text-gray-700">
-                      <div className="flex flex-col text-xs font-medium">
-                        <span className="flex items-center text-gray-800 font-bold">
-                          <Phone className="w-3 h-3 mr-1 text-gray-400" />
-                          {emp.phone || '-'}
-                        </span>
-                        <span className="text-gray-400">@{emp.username}</span>
+                      <div className="min-w-0">
+                        <div className="font-black text-gray-900 truncate">{emp.fullName}</div>
+                        <div className="text-xs text-gray-500 font-medium">@{emp.username}</div>
                       </div>
-                    </td>
-
-                    {/* Status */}
-                    <td className="py-3.5 px-4">
+                    </div>
+                    <div>
                       {emp.isActive ? (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5" />
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1" />
                           Aktif
                         </span>
                       ) : (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-800">
-                          <span className="w-1.5 h-1.5 rounded-full bg-red-500 mr-1.5" />
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-800">
+                          <span className="w-1.5 h-1.5 rounded-full bg-red-500 mr-1" />
                           Pasif
                         </span>
                       )}
-                    </td>
+                    </div>
+                  </div>
 
-                    {/* Last Login */}
-                    <td className="py-3.5 px-4 text-xs text-gray-500 font-medium">
-                      <div className="flex items-center">
-                        <Clock className="w-3.5 h-3.5 mr-1 text-gray-400" />
-                        <span>{formatDate(emp.lastLoginAt)}</span>
-                      </div>
-                    </td>
+                  <div className="flex flex-wrap items-center gap-2 text-xs">
+                    <div>{getRoleBadge(emp.role)}</div>
+                    {emp.phone && (
+                      <span className="flex items-center text-gray-600 bg-gray-50 px-2 py-1 rounded-lg border border-gray-100">
+                        <Phone className="w-3 h-3 mr-1 text-gray-400" />
+                        {emp.phone}
+                      </span>
+                    )}
+                    <span className="flex items-center text-gray-400 text-[11px] ml-auto">
+                      <Clock className="w-3 h-3 mr-1" />
+                      {formatDate(emp.lastLoginAt)}
+                    </span>
+                  </div>
 
-                    {/* Actions */}
-                    <td className="py-3.5 px-4 text-right space-x-1">
-                      {/* Active/Passive Toggle */}
-                      <button
-                        onClick={() => handleToggleStatus(emp)}
-                        title={emp.isActive ? 'Pasif Yap' : 'Aktif Yap'}
-                        className={`p-2 rounded-xl transition-colors cursor-pointer ${
-                          emp.isActive
-                            ? 'text-emerald-600 hover:bg-emerald-50'
-                            : 'text-gray-400 hover:bg-gray-100'
-                        }`}
-                      >
-                        {emp.isActive ? (
-                          <ToggleRight className="w-5 h-5 text-emerald-600" />
-                        ) : (
-                          <ToggleLeft className="w-5 h-5 text-gray-400" />
-                        )}
-                      </button>
+                  {/* Mobile Actions with touch-friendly targets */}
+                  <div className="flex items-center justify-end gap-1.5 pt-2 border-t border-gray-50">
+                    <button
+                      onClick={() => handleToggleStatus(emp)}
+                      title={emp.isActive ? 'Pasif Yap' : 'Aktif Yap'}
+                      className={`min-h-[40px] px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer ${
+                        emp.isActive
+                          ? 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100'
+                          : 'text-gray-600 bg-gray-100 hover:bg-gray-200'
+                      }`}
+                    >
+                      {emp.isActive ? (
+                        <>
+                          <ToggleRight className="w-4 h-4 text-emerald-600" />
+                          <span>Aktif</span>
+                        </>
+                      ) : (
+                        <>
+                          <ToggleLeft className="w-4 h-4 text-gray-400" />
+                          <span>Pasif</span>
+                        </>
+                      )}
+                    </button>
 
-                      {/* Edit */}
-                      <button
-                        onClick={() => handleOpenEditModal(emp)}
-                        title="Düzenle"
-                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-xl transition-colors cursor-pointer"
-                      >
-                        <Edit3 className="w-4 h-4" />
-                      </button>
+                    <button
+                      onClick={() => handleOpenEditModal(emp)}
+                      title="Düzenle"
+                      className="min-h-[40px] min-w-[40px] flex items-center justify-center p-2 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-xl transition-colors cursor-pointer"
+                    >
+                      <Edit3 className="w-4 h-4" />
+                    </button>
 
-                      {/* Password Reset */}
-                      <button
-                        onClick={() => handleOpenPasswordModal(emp)}
-                        title="Şifre Sıfırla"
-                        className="p-2 text-amber-600 hover:bg-amber-50 rounded-xl transition-colors cursor-pointer"
-                      >
-                        <KeyRound className="w-4 h-4" />
-                      </button>
+                    <button
+                      onClick={() => handleOpenPasswordModal(emp)}
+                      title="Şifre Sıfırla"
+                      className="min-h-[40px] min-w-[40px] flex items-center justify-center p-2 text-amber-600 bg-amber-50 hover:bg-amber-100 rounded-xl transition-colors cursor-pointer"
+                    >
+                      <KeyRound className="w-4 h-4" />
+                    </button>
 
-                      {/* Soft Delete */}
-                      <button
-                        onClick={() => handleOpenDeleteModal(emp)}
-                        title="Personeli Sil"
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </td>
+                    <button
+                      onClick={() => handleOpenDeleteModal(emp)}
+                      title="Personeli Sil"
+                      className="min-h-[40px] min-w-[40px] flex items-center justify-center p-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-xl transition-colors cursor-pointer"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Table View (>= md) */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-gray-50/80 border-b border-gray-200 text-[11px] font-black uppercase tracking-wider text-gray-500">
+                    <th className="py-3.5 px-4">Ad Soyad</th>
+                    <th className="py-3.5 px-4">Rol</th>
+                    <th className="py-3.5 px-4">Telefon / Kullanıcı Adı</th>
+                    <th className="py-3.5 px-4">Durum</th>
+                    <th className="py-3.5 px-4">Son Giriş</th>
+                    <th className="py-3.5 px-4 text-right">İşlemler</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-gray-100 text-sm">
+                  {filteredEmployees.map((emp) => (
+                    <tr key={emp.id} className="hover:bg-gray-50/60 transition-colors">
+                      {/* Full Name */}
+                      <td className="py-3.5 px-4 font-bold text-gray-900">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-9 h-9 bg-zeytin-100 text-zeytin-800 rounded-full flex items-center justify-center font-black text-xs shrink-0">
+                            {emp.firstName.charAt(0)}
+                            {emp.lastName.charAt(0)}
+                          </div>
+                          <div>
+                            <div className="font-black text-gray-900">{emp.fullName}</div>
+                            <div className="text-[11px] text-gray-400 font-normal">
+                              Kullanıcı: @{emp.username}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Role */}
+                      <td className="py-3.5 px-4">{getRoleBadge(emp.role)}</td>
+
+                      {/* Phone / Username */}
+                      <td className="py-3.5 px-4 text-gray-700">
+                        <div className="flex flex-col text-xs font-medium">
+                          <span className="flex items-center text-gray-800 font-bold">
+                            <Phone className="w-3 h-3 mr-1 text-gray-400" />
+                            {emp.phone || '-'}
+                          </span>
+                          <span className="text-gray-400">@{emp.username}</span>
+                        </div>
+                      </td>
+
+                      {/* Status */}
+                      <td className="py-3.5 px-4">
+                        {emp.isActive ? (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5" />
+                            Aktif
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-800">
+                            <span className="w-1.5 h-1.5 rounded-full bg-red-500 mr-1.5" />
+                            Pasif
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Last Login */}
+                      <td className="py-3.5 px-4 text-xs text-gray-500 font-medium">
+                        <div className="flex items-center">
+                          <Clock className="w-3.5 h-3.5 mr-1 text-gray-400" />
+                          <span>{formatDate(emp.lastLoginAt)}</span>
+                        </div>
+                      </td>
+
+                      {/* Actions */}
+                      <td className="py-3.5 px-4 text-right space-x-1">
+                        {/* Active/Passive Toggle */}
+                        <button
+                          onClick={() => handleToggleStatus(emp)}
+                          title={emp.isActive ? 'Pasif Yap' : 'Aktif Yap'}
+                          className={`p-2 rounded-xl transition-colors cursor-pointer ${
+                            emp.isActive
+                              ? 'text-emerald-600 hover:bg-emerald-50'
+                              : 'text-gray-400 hover:bg-gray-100'
+                          }`}
+                        >
+                          {emp.isActive ? (
+                            <ToggleRight className="w-5 h-5 text-emerald-600" />
+                          ) : (
+                            <ToggleLeft className="w-5 h-5 text-gray-400" />
+                          )}
+                        </button>
+
+                        {/* Edit */}
+                        <button
+                          onClick={() => handleOpenEditModal(emp)}
+                          title="Düzenle"
+                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-xl transition-colors cursor-pointer"
+                        >
+                          <Edit3 className="w-4 h-4" />
+                        </button>
+
+                        {/* Password Reset */}
+                        <button
+                          onClick={() => handleOpenPasswordModal(emp)}
+                          title="Şifre Sıfırla"
+                          className="p-2 text-amber-600 hover:bg-amber-50 rounded-xl transition-colors cursor-pointer"
+                        >
+                          <KeyRound className="w-4 h-4" />
+                        </button>
+
+                        {/* Soft Delete */}
+                        <button
+                          onClick={() => handleOpenDeleteModal(emp)}
+                          title="Personeli Sil"
+                          className="p-2 text-red-600 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
 
@@ -594,7 +693,7 @@ export const EmployeesManagementView: React.FC = () => {
                     onChange={(e) => setNewFirstName(e.target.value)}
                     placeholder="Ahmet"
                     required
-                    className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-xl text-sm font-medium focus:ring-2 focus:ring-zeytin-500"
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-xl text-base sm:text-sm font-medium focus:ring-2 focus:ring-zeytin-500"
                   />
                 </div>
                 <div>
@@ -605,7 +704,7 @@ export const EmployeesManagementView: React.FC = () => {
                     onChange={(e) => setNewLastName(e.target.value)}
                     placeholder="Yılmaz"
                     required
-                    className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-xl text-sm font-medium focus:ring-2 focus:ring-zeytin-500"
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-xl text-base sm:text-sm font-medium focus:ring-2 focus:ring-zeytin-500"
                   />
                 </div>
               </div>
@@ -619,7 +718,7 @@ export const EmployeesManagementView: React.FC = () => {
                     onChange={(e) => setNewPhone(e.target.value)}
                     placeholder="05321112233"
                     required
-                    className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-xl text-sm font-medium focus:ring-2 focus:ring-zeytin-500"
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-xl text-base sm:text-sm font-medium focus:ring-2 focus:ring-zeytin-500"
                   />
                 </div>
                 <div>
@@ -630,7 +729,7 @@ export const EmployeesManagementView: React.FC = () => {
                     onChange={(e) => setNewUsername(e.target.value)}
                     placeholder="ahmetyilmaz"
                     required
-                    className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-xl text-sm font-medium focus:ring-2 focus:ring-zeytin-500"
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-xl text-base sm:text-sm font-medium focus:ring-2 focus:ring-zeytin-500"
                   />
                 </div>
               </div>
@@ -644,7 +743,7 @@ export const EmployeesManagementView: React.FC = () => {
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="En az 6 karakter"
                     required
-                    className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-xl text-sm font-medium focus:ring-2 focus:ring-zeytin-500"
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-xl text-base sm:text-sm font-medium focus:ring-2 focus:ring-zeytin-500"
                   />
                 </div>
                 <div>
@@ -655,7 +754,7 @@ export const EmployeesManagementView: React.FC = () => {
                     onChange={(e) => setNewConfirmPassword(e.target.value)}
                     placeholder="Şifreyi doğrula"
                     required
-                    className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-xl text-sm font-medium focus:ring-2 focus:ring-zeytin-500"
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-xl text-base sm:text-sm font-medium focus:ring-2 focus:ring-zeytin-500"
                   />
                 </div>
               </div>
@@ -666,7 +765,7 @@ export const EmployeesManagementView: React.FC = () => {
                 <select
                   value={newRole}
                   onChange={(e) => setNewRole(e.target.value as UserRole)}
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-xl text-sm font-medium focus:ring-2 focus:ring-zeytin-500"
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-xl text-base sm:text-sm font-medium focus:ring-2 focus:ring-zeytin-500"
                 >
                   <option value="cashier">Kasiyer (cashier)</option>
                   <option value="admin">Yönetici (admin)</option>
@@ -684,7 +783,7 @@ export const EmployeesManagementView: React.FC = () => {
                     onChange={(e) => setCustomRole(e.target.value)}
                     placeholder="Örn: supervisor, accountant..."
                     required
-                    className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-xl text-sm font-medium focus:ring-2 focus:ring-zeytin-500"
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-xl text-base sm:text-sm font-medium focus:ring-2 focus:ring-zeytin-500"
                   />
                 </div>
               )}
@@ -757,7 +856,7 @@ export const EmployeesManagementView: React.FC = () => {
                     value={editFirstName}
                     onChange={(e) => setEditFirstName(e.target.value)}
                     required
-                    className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-xl text-sm font-medium focus:ring-2 focus:ring-zeytin-500"
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-xl text-base sm:text-sm font-medium focus:ring-2 focus:ring-zeytin-500"
                   />
                 </div>
                 <div>
@@ -767,7 +866,7 @@ export const EmployeesManagementView: React.FC = () => {
                     value={editLastName}
                     onChange={(e) => setEditLastName(e.target.value)}
                     required
-                    className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-xl text-sm font-medium focus:ring-2 focus:ring-zeytin-500"
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-xl text-base sm:text-sm font-medium focus:ring-2 focus:ring-zeytin-500"
                   />
                 </div>
               </div>
@@ -780,7 +879,7 @@ export const EmployeesManagementView: React.FC = () => {
                     value={editPhone}
                     onChange={(e) => setEditPhone(e.target.value)}
                     required
-                    className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-xl text-sm font-medium focus:ring-2 focus:ring-zeytin-500"
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-xl text-base sm:text-sm font-medium focus:ring-2 focus:ring-zeytin-500"
                   />
                 </div>
                 <div>
@@ -790,7 +889,7 @@ export const EmployeesManagementView: React.FC = () => {
                     value={editUsername}
                     onChange={(e) => setEditUsername(e.target.value)}
                     required
-                    className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-xl text-sm font-medium focus:ring-2 focus:ring-zeytin-500"
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-xl text-base sm:text-sm font-medium focus:ring-2 focus:ring-zeytin-500"
                   />
                 </div>
               </div>
@@ -801,7 +900,7 @@ export const EmployeesManagementView: React.FC = () => {
                 <select
                   value={editRole}
                   onChange={(e) => setEditRole(e.target.value as UserRole)}
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-xl text-sm font-medium focus:ring-2 focus:ring-zeytin-500"
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-xl text-base sm:text-sm font-medium focus:ring-2 focus:ring-zeytin-500"
                 >
                   <option value="cashier">Kasiyer (cashier)</option>
                   <option value="admin">Yönetici (admin)</option>
@@ -818,7 +917,7 @@ export const EmployeesManagementView: React.FC = () => {
                     value={editCustomRole}
                     onChange={(e) => setEditCustomRole(e.target.value)}
                     required
-                    className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-xl text-sm font-medium focus:ring-2 focus:ring-zeytin-500"
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-xl text-base sm:text-sm font-medium focus:ring-2 focus:ring-zeytin-500"
                   />
                 </div>
               )}
@@ -899,7 +998,7 @@ export const EmployeesManagementView: React.FC = () => {
                     onChange={(e) => setResetPassword(e.target.value)}
                     placeholder="En az 6 karakter"
                     required
-                    className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-300 rounded-xl text-sm font-medium focus:ring-2 focus:ring-amber-500"
+                    className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-300 rounded-xl text-base sm:text-sm font-medium focus:ring-2 focus:ring-amber-500"
                   />
                 </div>
               </div>
@@ -916,7 +1015,7 @@ export const EmployeesManagementView: React.FC = () => {
                     onChange={(e) => setResetConfirmPassword(e.target.value)}
                     placeholder="Şifreyi doğrula"
                     required
-                    className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-300 rounded-xl text-sm font-medium focus:ring-2 focus:ring-amber-500"
+                    className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-300 rounded-xl text-base sm:text-sm font-medium focus:ring-2 focus:ring-amber-500"
                   />
                 </div>
               </div>

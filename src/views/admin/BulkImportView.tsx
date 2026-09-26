@@ -70,7 +70,7 @@ export const BulkImportView: React.FC = () => {
         } else {
           setPreviewItems(items);
         }
-      } catch (err) {
+      } catch {
         setErrorMsg('Dosya okunurken bir hata oluştu.');
       } finally {
         setLoading(false);
@@ -133,19 +133,19 @@ export const BulkImportView: React.FC = () => {
   };
 
   return (
-    <div className="p-6 h-full flex flex-col max-w-6xl mx-auto">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 shrink-0">
+    <div className="p-4 sm:p-6 h-full flex flex-col max-w-6xl mx-auto space-y-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
         <div>
-          <h2 className="text-2xl font-black text-gray-800 flex items-center space-x-2">
+          <h2 className="text-xl sm:text-2xl font-black text-gray-800 flex items-center space-x-2">
             <FileUp className="w-6 h-6 text-zeytin-600" />
             <span>Toplu Ürün & Fiyat İçe Aktarma</span>
           </h2>
-          <p className="text-sm text-gray-500 mt-1">Excel (CSV) dosyasından sisteme yüzlerce ürünü tek seferde yükleyin.</p>
+          <p className="text-xs sm:text-sm text-gray-500 mt-0.5">Excel (CSV) dosyasından sisteme yüzlerce ürünü tek seferde yükleyin.</p>
         </div>
         
         <button
           onClick={handleDownloadTemplate}
-          className="text-zeytin-600 hover:text-zeytin-700 bg-zeytin-50 hover:bg-zeytin-100 px-4 py-2.5 rounded-xl font-bold flex items-center space-x-2 transition-colors border border-zeytin-200"
+          className="w-full sm:w-auto text-zeytin-700 hover:text-zeytin-800 bg-zeytin-50 hover:bg-zeytin-100 px-4 py-2.5 rounded-xl font-bold flex items-center justify-center space-x-2 transition-colors border border-zeytin-200 cursor-pointer min-h-[44px] text-sm"
         >
           <FileSpreadsheet className="w-5 h-5" />
           <span>Örnek Şablonu İndir</span>
@@ -153,21 +153,21 @@ export const BulkImportView: React.FC = () => {
       </div>
 
       {successMsg && (
-        <div className="mb-6 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-xl flex items-start space-x-3 shrink-0">
+        <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-xl flex items-start space-x-3 shrink-0">
           <CheckCircle2 className="w-5 h-5 shrink-0 mt-0.5" />
           <div className="text-sm font-medium">{successMsg}</div>
         </div>
       )}
 
       {errorMsg && (
-        <div className="mb-6 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-xl flex items-start space-x-3 shrink-0">
+        <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-xl flex items-start space-x-3 shrink-0">
           <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
           <div className="text-sm font-medium">{errorMsg}</div>
         </div>
       )}
 
       {importResult && importResult.errors.length > 0 && (
-        <div className="mb-6 bg-red-50 border border-red-200 text-red-800 p-4 rounded-xl shrink-0">
+        <div className="bg-red-50 border border-red-200 text-red-800 p-4 rounded-xl shrink-0">
           <h4 className="font-bold text-sm mb-2 flex items-center space-x-2">
             <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />
             <span>Aktarılamayan Hatalı Satırlar ({importResult.errors.length})</span>
@@ -182,7 +182,7 @@ export const BulkImportView: React.FC = () => {
         </div>
       )}
 
-      <div className="bg-white p-6 rounded-2xl shadow-xs border border-gray-100 mb-6 shrink-0">
+      <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-xs border border-gray-100 shrink-0">
         <label className="block w-full cursor-pointer">
           <input
             type="file"
@@ -192,12 +192,12 @@ export const BulkImportView: React.FC = () => {
             ref={fileInputRef}
             disabled={loading}
           />
-          <div className={`border-2 border-dashed rounded-2xl p-10 flex flex-col items-center justify-center transition-colors ${file ? 'border-zeytin-500 bg-zeytin-50' : 'border-gray-300 hover:border-gray-400 bg-gray-50'}`}>
-            <UploadCloud className={`w-12 h-12 mb-3 ${file ? 'text-zeytin-600' : 'text-gray-400'}`} />
-            <span className="text-sm font-bold text-gray-700">
+          <div className={`border-2 border-dashed rounded-2xl p-6 sm:p-10 flex flex-col items-center justify-center transition-colors ${file ? 'border-zeytin-500 bg-zeytin-50' : 'border-gray-300 hover:border-gray-400 bg-gray-50'}`}>
+            <UploadCloud className={`w-10 h-10 sm:w-12 sm:h-12 mb-3 ${file ? 'text-zeytin-600' : 'text-gray-400'}`} />
+            <span className="text-sm sm:text-base font-bold text-gray-700 text-center">
               {file ? file.name : 'CSV dosyasını seçmek için tıklayın'}
             </span>
-            <span className="text-xs text-gray-500 mt-1">Sadece .csv uzantılı ve noktalı virgül (;) ile ayrılmış dosyalar</span>
+            <span className="text-xs text-gray-500 mt-1 text-center">Sadece .csv uzantılı ve noktalı virgül (;) ile ayrılmış dosyalar</span>
           </div>
         </label>
       </div>
@@ -205,21 +205,21 @@ export const BulkImportView: React.FC = () => {
       {previewItems.length > 0 && (
         <div className="flex-1 flex flex-col min-h-0">
           {/* Action Settings & Stats */}
-          <div className="bg-white p-4 border border-gray-100 rounded-t-2xl shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shrink-0">
-            <div className="flex items-center space-x-4 text-sm font-medium text-gray-600">
+          <div className="bg-white p-4 border border-gray-100 rounded-t-2xl shadow-xs flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 shrink-0">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm font-medium text-gray-600">
               <span className="text-gray-900 font-bold">Önizleme:</span>
-              <span className="text-blue-600">{stats.new} Yeni</span>
-              <span className="text-amber-600">{stats.exists} Mevcut</span>
-              {stats.error > 0 && <span className="text-red-600">{stats.error} Hatalı</span>}
+              <span className="text-blue-600 font-bold">{stats.new} Yeni</span>
+              <span className="text-amber-600 font-bold">{stats.exists} Mevcut</span>
+              {stats.error > 0 && <span className="text-red-600 font-bold">{stats.error} Hatalı</span>}
               <span className="text-gray-400">| Toplam: {stats.total} Satır</span>
             </div>
             
-            <div className="flex items-center space-x-3 w-full md:w-auto">
-              <label className="text-sm font-bold text-gray-700 shrink-0">Mevcut Ürünler:</label>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full lg:w-auto">
+              <label className="text-xs font-bold text-gray-700 shrink-0">Mevcut Ürünler:</label>
               <select
                 value={existingAction}
                 onChange={(e) => setExistingAction(e.target.value as BulkImportAction)}
-                className="flex-1 md:w-auto px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-zeytin-500 focus:outline-none"
+                className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-xl text-base sm:text-sm focus:ring-2 focus:ring-zeytin-500 focus:outline-none"
               >
                 <option value="UPDATE_INFO">Bilgileri Güncelle (Stok Değişmesin)</option>
                 <option value="ADD_STOCK_ONLY">Sadece Stok Ekle (Fiyat/Ad sabit)</option>
@@ -229,7 +229,7 @@ export const BulkImportView: React.FC = () => {
               <button
                 onClick={handleExecuteImport}
                 disabled={loading || (stats.new === 0 && stats.exists === 0)}
-                className="bg-zeytin-600 hover:bg-zeytin-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-5 py-2 rounded-lg font-bold flex items-center space-x-2 shadow-md transition-colors shrink-0"
+                className="bg-zeytin-600 hover:bg-zeytin-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-xl font-bold flex items-center justify-center space-x-2 shadow-md transition-colors shrink-0 text-sm cursor-pointer min-h-[44px]"
               >
                 <Play className="w-4 h-4" fill="currentColor" />
                 <span>Aktarımı Başlat</span>
@@ -240,7 +240,7 @@ export const BulkImportView: React.FC = () => {
           {/* Preview Table */}
           <div className="bg-white border-x border-b border-gray-100 rounded-b-2xl shadow-xs flex-1 overflow-auto">
             <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50 sticky top-0 z-10">
+              <thead className="bg-gray-50 sticky top-0 z-10 shadow-xs">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Satır</th>
                   <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Durum</th>

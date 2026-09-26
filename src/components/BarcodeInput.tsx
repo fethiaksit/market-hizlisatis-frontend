@@ -83,7 +83,7 @@ export const BarcodeInput: React.FC<BarcodeInputProps> = ({ inputRef }) => {
               placeholder="Barkod okutun veya ürün adı yazın..."
               autoComplete="off"
               autoFocus
-              className="w-full pl-10 pr-20 py-2.5 bg-white border-2 border-zeytin-600 rounded-xl text-xs sm:text-sm font-bold text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-zeytin-500/40 focus:border-zeytin-700 shadow-2xs transition-all h-10 sm:h-11"
+              className="w-full pl-10 pr-20 py-2.5 bg-white border-2 border-zeytin-600 rounded-xl text-base sm:text-sm font-bold text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-zeytin-500/40 focus:border-zeytin-700 shadow-2xs transition-all h-10 sm:h-11"
             />
 
             <div className="absolute right-2 flex items-center space-x-1">
@@ -135,7 +135,7 @@ export const BarcodeInput: React.FC<BarcodeInputProps> = ({ inputRef }) => {
           {selectedCustomer ? (
             <>
               <UserCheck className="w-4 h-4 text-amber-700" />
-              <span className="font-extrabold max-w-[120px] truncate">{selectedCustomer.name}</span>
+              <span className="font-extrabold max-w-[100px] sm:max-w-[120px] truncate">{selectedCustomer.name}</span>
             </>
           ) : (
             <>
@@ -149,11 +149,11 @@ export const BarcodeInput: React.FC<BarcodeInputProps> = ({ inputRef }) => {
         <button
           type="button"
           onClick={() => setProductsModalOpen(true)}
-          className="bg-emerald-800 hover:bg-emerald-900 active:bg-emerald-950 text-white font-extrabold px-3.5 py-2 rounded-xl text-xs sm:text-sm transition-all shadow-xs flex items-center space-x-1.5 shrink-0 cursor-pointer border border-emerald-700 hover:scale-[1.01] h-10 sm:h-11"
+          className="bg-emerald-800 hover:bg-emerald-900 active:bg-emerald-950 text-white font-extrabold px-3 sm:px-3.5 py-2 rounded-xl text-xs sm:text-sm transition-all shadow-xs flex items-center space-x-1.5 shrink-0 cursor-pointer border border-emerald-700 hover:scale-[1.01] h-10 sm:h-11"
           title="Tüm Ürünler Kataloğunu Aç (F10)"
         >
           <LayoutGrid className="w-4 h-4 text-emerald-200" />
-          <span className="tracking-wide">ÜRÜNLER</span>
+          <span className="tracking-wide hidden xs:inline">ÜRÜNLER</span>
           <span className="bg-emerald-950/60 text-emerald-200 text-[10px] px-1.5 py-0.5 rounded font-mono">
             F10
           </span>
@@ -165,48 +165,44 @@ export const BarcodeInput: React.FC<BarcodeInputProps> = ({ inputRef }) => {
         isOpen={isCameraOpen}
         onClose={() => setIsCameraOpen(false)}
         onScan={handleCameraScan}
+        title="POS KAMERA BARKOD OKUYUCU"
+        description="Barkodu çerçevenin ortasına hizalayın"
       />
 
-      {/* Selected Customer Inline Bar */}
+      {/* Selected Customer Inline Bar (Sade ve tek dokunuşla kaldırılabilir) */}
       {selectedCustomer && (
-        <div className="bg-amber-50/90 border border-amber-300 rounded-lg px-2.5 py-1 flex items-center justify-between text-xs text-amber-900 animate-in fade-in duration-100">
+        <div className="bg-amber-50/95 border border-amber-300 rounded-xl px-3 py-1.5 flex items-center justify-between text-xs text-amber-900 shadow-2xs animate-in fade-in duration-100">
           <div className="flex items-center space-x-2 truncate">
-            <span className="font-black flex items-center gap-1 text-amber-800">
-              <UserCheck className="w-3.5 h-3.5 text-amber-600" />
-              Cari: {selectedCustomer.name}
+            <span className="font-black flex items-center gap-1.5 text-amber-900">
+              <UserCheck className="w-4 h-4 text-amber-600 shrink-0" />
+              <span className="truncate">{selectedCustomer.name}</span>
             </span>
             <span className="text-amber-400">•</span>
-            <span className="text-[11px] font-bold text-amber-950">
-              Mevcut Bakiye: <span className={selectedCustomer.balance > 0 ? 'text-red-700 font-black' : 'text-emerald-800 font-bold'}>
+            <span className="text-[11px] font-bold text-amber-950 whitespace-nowrap">
+              Bakiye: <span className={selectedCustomer.balance > 0 ? 'text-red-700 font-black' : 'text-emerald-800 font-bold'}>
                 {formatCurrency(selectedCustomer.balance)} {selectedCustomer.balance > 0 ? 'Borç' : ''}
               </span>
             </span>
           </div>
 
-          <div className="flex items-center space-x-2 shrink-0">
+          <div className="flex items-center space-x-1.5 shrink-0 ml-2">
             <button
               type="button"
               onClick={() => setDetailCustomer(selectedCustomer)}
-              className="text-[10px] font-extrabold text-amber-900 bg-amber-200/80 hover:bg-amber-200 px-2 py-0.5 rounded flex items-center gap-1 cursor-pointer transition-colors"
+              className="text-[10px] font-extrabold text-amber-900 bg-amber-200/80 hover:bg-amber-200 px-2 py-1 rounded-lg hidden sm:flex items-center gap-1 cursor-pointer transition-colors"
               title="Cari Ekstre ve Fiş Geçmişi"
             >
               <History className="w-3 h-3" />
-              <span>Detay / Ekstre</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setCustomerModalOpen(true)}
-              className="text-[10px] font-bold text-amber-800 hover:text-amber-950 underline cursor-pointer"
-            >
-              Değiştir
+              <span>Ekstre</span>
             </button>
             <button
               type="button"
               onClick={handleRemoveCustomer}
-              className="p-0.5 hover:bg-amber-200 rounded text-amber-800 transition-colors cursor-pointer"
-              title="Cariyi Kaldır"
+              className="px-2 py-1 bg-amber-200 hover:bg-amber-300 text-amber-950 font-bold rounded-lg text-xs flex items-center gap-1 transition-colors cursor-pointer min-h-[30px]"
+              title="Cari Müşteriyi Kaldır"
             >
-              <X className="w-3.5 h-3.5" />
+              <X className="w-3.5 h-3.5 text-red-700" />
+              <span className="hidden xs:inline">Cariyi Kaldır</span>
             </button>
           </div>
         </div>

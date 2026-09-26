@@ -150,6 +150,9 @@ type BackendProduct = {
   isQuickProduct?: boolean;
   bestseller_order?: number;
   quickOrder?: number;
+  image_url?: string;
+  imageUrl?: string;
+  image?: string;
   is_active?: boolean;
   isActive?: boolean;
   created_at?: string;
@@ -159,6 +162,7 @@ type BackendProduct = {
 };
 
 function mapBackendProduct(product: BackendProduct): Product {
+  const img = product.image_url || product.imageUrl || product.image || '';
   return {
     id: product.id,
     barcode: product.barcode || '',
@@ -172,6 +176,8 @@ function mapBackendProduct(product: BackendProduct): Product {
     category: product.category || '',
     isQuickProduct: Boolean(product.is_bestseller ?? product.isQuickProduct),
     quickOrder: product.bestseller_order ?? product.quickOrder ?? undefined,
+    imageUrl: img,
+    image: img,
     isActive: product.is_active ?? product.isActive ?? true,
     createdAt: product.created_at || product.createdAt,
     updatedAt: product.updated_at || product.updatedAt,
@@ -1028,8 +1034,14 @@ export const posService = {
     stock?: number;
     unit?: string;
     category?: string;
+    imageUrl?: string;
+    isQuickProduct?: boolean;
   }, createdBy: string, role?: string): Promise<Product> {
     assertAdmin(role);
+    if (data.isQuickProduct && (!data.imageUrl || !data.imageUrl.trim())) {
+      throw new Error('Favori ürün için ürün görseli gereklidir.');
+    }
+
     if (isMockMode()) {
       await new Promise(r => setTimeout(r, 200));
       const products = getStoredProducts();
@@ -1050,6 +1062,9 @@ export const posService = {
         stock: data.stock || 0,
         unit: data.unit || 'Adet',
         category: data.category || '',
+        imageUrl: data.imageUrl || '',
+        image: data.imageUrl || '',
+        isQuickProduct: Boolean(data.isQuickProduct),
         isActive: true,
         createdAt: now,
         updatedAt: now,
@@ -1091,8 +1106,8 @@ export const posService = {
         category: data.category || '',
         brand: '',
         description: '',
-        image_url: '',
-        is_bestseller: false,
+        image_url: data.imageUrl || '',
+        is_bestseller: Boolean(data.isQuickProduct),
         bestseller_order: 0,
       }),
     });
@@ -1106,8 +1121,14 @@ export const posService = {
     purchasePrice?: number;
     unit?: string;
     category?: string;
+    imageUrl?: string;
+    isQuickProduct?: boolean;
   }, updatedBy: string, role?: string): Promise<Product> {
     assertAdmin(role);
+    if (data.isQuickProduct && (!data.imageUrl || !data.imageUrl.trim())) {
+      throw new Error('Favori ürün için ürün görseli gereklidir.');
+    }
+
     if (isMockMode()) {
       await new Promise(r => setTimeout(r, 150));
       const products = getStoredProducts();
@@ -1139,6 +1160,11 @@ export const posService = {
       if (data.purchasePrice !== undefined) product.purchasePrice = data.purchasePrice;
       if (data.unit !== undefined) product.unit = data.unit;
       if (data.category !== undefined) product.category = data.category;
+      if (data.imageUrl !== undefined) {
+        product.imageUrl = data.imageUrl;
+        product.image = data.imageUrl;
+      }
+      if (data.isQuickProduct !== undefined) product.isQuickProduct = data.isQuickProduct;
       product.updatedAt = now;
 
       saveStoredProducts(products);
@@ -1156,8 +1182,8 @@ export const posService = {
         category: data.category || '',
         brand: '',
         description: '',
-        image_url: '',
-        is_bestseller: false,
+        image_url: data.imageUrl !== undefined ? data.imageUrl : '',
+        is_bestseller: data.isQuickProduct !== undefined ? data.isQuickProduct : false,
         bestseller_order: 0,
       }),
     });
@@ -1170,6 +1196,10 @@ export const posService = {
       const products = getStoredProducts();
       const product = products.find(p => String(p.id) === String(productId));
       if (!product) throw new Error('Ürün bulunamadı!');
+
+      if (isFavorite && (!product.imageUrl || !product.imageUrl.trim())) {
+        throw new Error('Favori ürün için ürün görseli gereklidir.');
+      }
 
       if (isFavorite && !product.isQuickProduct) {
         const favoriteCount = products.filter(p => p.isQuickProduct && p.isActive !== false).length;
@@ -1184,6 +1214,14 @@ export const posService = {
       product.updatedAt = new Date().toISOString();
       saveStoredProducts(products);
       return product;
+    }
+
+    if (isFavorite) {
+      const all = await this.getAdminProducts('', true, role);
+      const target = all.find(p => String(p.id) === String(productId));
+      if (target && (!target.imageUrl || !target.imageUrl.trim())) {
+        throw new Error('Favori ürün için ürün görseli gereklidir.');
+      }
     }
 
     const product = await apiFetch<BackendProduct>(`/products/${productId}/favorite`, {

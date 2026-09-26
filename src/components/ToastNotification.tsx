@@ -8,8 +8,8 @@ export const ToastNotification: React.FC = () => {
   if (!toast) return null;
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-bottom-5 duration-200">
-      <div className={`px-5 py-3.5 rounded-2xl shadow-xl flex items-center space-x-3 border ${
+    <div className="fixed top-3 left-3 right-3 sm:left-auto sm:right-6 sm:bottom-6 sm:top-auto z-50 animate-in slide-in-from-top-3 sm:slide-in-from-bottom-5 duration-200 pointer-events-none">
+      <div className={`px-4 py-3 sm:px-5 sm:py-3.5 rounded-2xl shadow-2xl flex items-center space-x-3 border pointer-events-auto ${
         toast.type === 'success'
           ? 'bg-zeytin-900 border-zeytin-500 text-white'
           : toast.type === 'error'

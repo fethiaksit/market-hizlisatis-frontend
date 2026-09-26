@@ -288,7 +288,7 @@ export const CustomersManagementView: React.FC = () => {
         </div>
       </div>
 
-      {/* Customer List Table */}
+      {/* Customer List Container */}
       <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-2xs">
         {loading ? (
           <div className="p-8 text-center text-gray-500 font-bold text-xs">Cari verileri yükleniyor...</div>
@@ -298,97 +298,172 @@ export const CustomersManagementView: React.FC = () => {
             <p className="font-bold text-gray-600">Aramanıza uygun cari müşteri bulunamadı</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-[10px] border-b border-gray-200">
-                <tr>
-                  <th className="px-4 py-3">Cari Adı / Firma</th>
-                  <th className="px-4 py-3">Telefon</th>
-                  <th className="px-4 py-3">Durum</th>
-                  <th className="px-4 py-3 text-right">Borç Bakiyesi</th>
-                  <th className="px-4 py-3 text-right">Cari Limit</th>
-                  <th className="px-4 py-3 text-right">İşlemler</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 text-gray-700">
-                {filteredCustomers.map((cust) => (
-                  <tr key={cust.id} className="hover:bg-gray-50/80 font-medium">
-                    <td className="px-4 py-3 font-extrabold text-gray-900">
-                      <div>{cust.name}</div>
-                      {cust.note && <div className="text-[10px] text-gray-400 font-normal">{cust.note}</div>}
-                    </td>
-
-                    <td className="px-4 py-3 font-mono text-gray-600">
-                      {cust.phone ? (
-                        <span className="flex items-center space-x-1">
+          <>
+            {/* A. Mobile View: Card List (md:hidden) */}
+            <div className="md:hidden divide-y divide-gray-100 p-2 space-y-2">
+              {filteredCustomers.map((cust) => (
+                <div key={cust.id} className="pt-2 first:pt-0 p-2.5 rounded-xl bg-gray-50/60 border border-gray-100 space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <h4 className="font-extrabold text-sm text-gray-900 leading-snug">
+                        {cust.name}
+                      </h4>
+                      {cust.phone && (
+                        <div className="text-xs text-gray-500 flex items-center gap-1 mt-0.5 font-mono">
                           <Phone className="w-3 h-3 text-gray-400" />
                           <span>{cust.phone}</span>
-                        </span>
-                      ) : (
-                        <span className="text-gray-300">-</span>
+                        </div>
                       )}
-                    </td>
+                    </div>
+                    <span className={`px-2 py-0.5 rounded-md font-bold text-[10px] shrink-0 ${
+                      cust.is_active !== false 
+                        ? 'bg-emerald-100 text-emerald-800' 
+                        : 'bg-red-100 text-red-800'
+                    }`}>
+                      {cust.is_active !== false ? 'AKTİF' : 'PASİF'}
+                    </span>
+                  </div>
 
-                    <td className="px-4 py-3">
-                      <span className={`px-2 py-0.5 rounded-md font-bold text-[10px] ${
-                        cust.is_active !== false 
-                          ? 'bg-emerald-100 text-emerald-800' 
-                          : 'bg-red-100 text-red-800'
-                      }`}>
-                        {cust.is_active !== false ? 'AKTİF' : 'PASİF'}
-                      </span>
-                    </td>
-
-                    <td className="px-4 py-3 text-right font-black text-sm">
-                      <span className={cust.balance > 0 ? 'text-red-700' : 'text-emerald-700'}>
+                  <div className="flex items-center justify-between text-xs bg-white p-2 rounded-lg border border-gray-100">
+                    <div>
+                      <span className="text-[10px] text-gray-400 block uppercase">Borç Bakiyesi</span>
+                      <span className={`font-black text-sm ${cust.balance > 0 ? 'text-red-700' : 'text-emerald-700'}`}>
                         {formatCurrency(cust.balance)}
                       </span>
-                    </td>
+                    </div>
 
-                    <td className="px-4 py-3 text-right font-mono text-gray-600">
-                      {cust.credit_limit ? formatCurrency(cust.credit_limit) : <span className="text-gray-400">Sınırsız</span>}
-                    </td>
-
-                    <td className="px-4 py-3 text-right space-x-1">
+                    <div className="flex items-center space-x-1.5">
                       <button
                         type="button"
                         onClick={() => setDetailCustomer(cust)}
-                        className="p-1.5 bg-gray-100 hover:bg-zeytin-100 hover:text-zeytin-900 text-gray-700 rounded-lg font-bold transition-colors cursor-pointer inline-flex items-center space-x-1"
+                        className="px-2.5 py-1.5 bg-gray-100 hover:bg-zeytin-100 text-gray-800 rounded-lg text-xs font-bold transition-colors cursor-pointer min-h-[36px] flex items-center gap-1"
                         title="Ekstre & Hareketler"
                       >
-                        <History className="w-3.5 h-3.5" />
+                        <History className="w-3.5 h-3.5 text-zeytin-700" />
                         <span>Ekstre</span>
                       </button>
 
                       <button
                         type="button"
                         onClick={() => handleOpenEditModal(cust)}
-                        className="p-1.5 bg-gray-100 hover:bg-blue-100 hover:text-blue-900 text-gray-700 rounded-lg font-bold transition-colors cursor-pointer inline-flex items-center space-x-1"
+                        className="px-2.5 py-1.5 bg-gray-100 hover:bg-blue-100 text-blue-800 rounded-lg text-xs font-bold transition-colors cursor-pointer min-h-[36px] flex items-center gap-1"
                         title="Düzenle"
                       >
-                        <Edit2 className="w-3.5 h-3.5" />
+                        <Edit2 className="w-3.5 h-3.5 text-blue-600" />
                         <span>Düzenle</span>
                       </button>
 
                       <button
                         type="button"
                         onClick={() => handleToggleStatus(cust)}
-                        className={`p-1.5 rounded-lg font-bold transition-colors cursor-pointer inline-flex items-center space-x-1 ${
+                        className={`p-1.5 rounded-lg font-bold transition-colors cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center ${
                           cust.is_active !== false 
-                            ? 'bg-red-50 text-red-600 hover:bg-red-100' 
-                            : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
+                            ? 'bg-red-50 text-red-600' 
+                            : 'bg-emerald-50 text-emerald-600'
                         }`}
                         title={cust.is_active !== false ? 'Pasife Al' : 'Aktif Et'}
                       >
-                        <Power className="w-3.5 h-3.5" />
-                        <span>{cust.is_active !== false ? 'Pasife Al' : 'Aktif Et'}</span>
+                        <Power className="w-4 h-4" />
                       </button>
-                    </td>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* B. Desktop View: Table (hidden md:block) */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-[10px] border-b border-gray-200">
+                  <tr>
+                    <th className="px-4 py-3">Cari Adı / Firma</th>
+                    <th className="px-4 py-3">Telefon</th>
+                    <th className="px-4 py-3">Durum</th>
+                    <th className="px-4 py-3 text-right">Borç Bakiyesi</th>
+                    <th className="px-4 py-3 text-right">Cari Limit</th>
+                    <th className="px-4 py-3 text-right">İşlemler</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-gray-100 text-gray-700">
+                  {filteredCustomers.map((cust) => (
+                    <tr key={cust.id} className="hover:bg-gray-50/80 font-medium">
+                      <td className="px-4 py-3 font-extrabold text-gray-900">
+                        <div>{cust.name}</div>
+                        {cust.note && <div className="text-[10px] text-gray-400 font-normal">{cust.note}</div>}
+                      </td>
+
+                      <td className="px-4 py-3 font-mono text-gray-600">
+                        {cust.phone ? (
+                          <span className="flex items-center space-x-1">
+                            <Phone className="w-3 h-3 text-gray-400" />
+                            <span>{cust.phone}</span>
+                          </span>
+                        ) : (
+                          <span className="text-gray-300">-</span>
+                        )}
+                      </td>
+
+                      <td className="px-4 py-3">
+                        <span className={`px-2 py-0.5 rounded-md font-bold text-[10px] ${
+                          cust.is_active !== false 
+                            ? 'bg-emerald-100 text-emerald-800' 
+                            : 'bg-red-100 text-red-800'
+                        }`}>
+                          {cust.is_active !== false ? 'AKTİF' : 'PASİF'}
+                        </span>
+                      </td>
+
+                      <td className="px-4 py-3 text-right font-black text-sm">
+                        <span className={cust.balance > 0 ? 'text-red-700' : 'text-emerald-700'}>
+                          {formatCurrency(cust.balance)}
+                        </span>
+                      </td>
+
+                      <td className="px-4 py-3 text-right font-mono text-gray-600">
+                        {cust.credit_limit ? formatCurrency(cust.credit_limit) : <span className="text-gray-400">Sınırsız</span>}
+                      </td>
+
+                      <td className="px-4 py-3 text-right space-x-1">
+                        <button
+                          type="button"
+                          onClick={() => setDetailCustomer(cust)}
+                          className="p-1.5 bg-gray-100 hover:bg-zeytin-100 hover:text-zeytin-900 text-gray-700 rounded-lg font-bold transition-colors cursor-pointer inline-flex items-center space-x-1"
+                          title="Ekstre & Hareketler"
+                        >
+                          <History className="w-3.5 h-3.5" />
+                          <span>Ekstre</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEditModal(cust)}
+                          className="p-1.5 bg-gray-100 hover:bg-blue-100 hover:text-blue-900 text-gray-700 rounded-lg font-bold transition-colors cursor-pointer inline-flex items-center space-x-1"
+                          title="Düzenle"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                          <span>Düzenle</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleToggleStatus(cust)}
+                          className={`p-1.5 rounded-lg font-bold transition-colors cursor-pointer inline-flex items-center space-x-1 ${
+                            cust.is_active !== false 
+                              ? 'bg-red-50 text-red-600 hover:bg-red-100' 
+                              : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
+                          }`}
+                          title={cust.is_active !== false ? 'Pasife Al' : 'Aktif Et'}
+                        >
+                          <Power className="w-3.5 h-3.5" />
+                          <span>{cust.is_active !== false ? 'Pasife Al' : 'Aktif Et'}</span>
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
 

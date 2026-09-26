@@ -4,12 +4,24 @@ import { X, Flashlight, CameraOff, RefreshCw, CheckCircle2, ShieldAlert } from '
 import { PosAudio } from '../utils/format';
 
 interface BarcodeScannerProps {
-  isOpen: boolean;
+  isOpen?: boolean;
   onClose: () => void;
-  onScan: (barcode: string) => void;
+  onScan?: (barcode: string) => void;
+  onDetected?: (barcode: string) => void;
+  title?: string;
+  description?: string;
+  supportedFormats?: string;
 }
 
-export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ isOpen, onClose, onScan }) => {
+export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ 
+  isOpen = true, 
+  onClose, 
+  onScan,
+  onDetected,
+  title = 'KAMERA BARKOD OKUYUCU',
+  description = 'Barkodu çerçevenin ortasına hizalayın',
+  supportedFormats = 'EAN-13 • EAN-8 • UPC-A • Code128'
+}) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const readerRef = useRef<BrowserMultiFormatReader | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
@@ -125,7 +137,8 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ isOpen, onClose,
               // Immediate stop to prevent duplicate multi-scans
               setTimeout(() => {
                 stopCamera();
-                onScan(code.trim());
+                const notify = onDetected || onScan;
+                if (notify) notify(code.trim());
                 onClose();
               }, 150);
             }
@@ -186,7 +199,7 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ isOpen, onClose,
       <div className="relative z-20 bg-gray-900/90 backdrop-blur-md px-4 py-3 border-b border-gray-800 flex items-center justify-between shrink-0">
         <div className="flex items-center space-x-2 text-white">
           <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="font-black text-sm tracking-wide">KAMERA BARKOD OKUYUCU</span>
+          <span className="font-black text-sm tracking-wide">{title}</span>
         </div>
 
         <div className="flex items-center space-x-2">
@@ -264,7 +277,7 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ isOpen, onClose,
             {/* Top instruction text */}
             <div className="mt-4 bg-gray-900/80 backdrop-blur-md border border-gray-700/60 rounded-full px-4 py-1.5 text-center shadow-lg">
               <p className="text-xs font-semibold text-gray-200">
-                Barkodu çerçevenin ortasına hizalayın
+                {description}
               </p>
             </div>
 
@@ -298,7 +311,7 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ isOpen, onClose,
             <div className="mb-4 bg-gray-900/80 backdrop-blur-md border border-gray-800 rounded-2xl px-4 py-2 text-center flex items-center gap-2">
               <ShieldAlert className="w-3.5 h-3.5 text-gray-400" />
               <span className="text-[11px] font-mono text-gray-300">
-                EAN-13 • EAN-8 • UPC-A • Code128
+                {supportedFormats}
               </span>
             </div>
           </div>

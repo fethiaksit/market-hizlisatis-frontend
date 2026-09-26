@@ -110,21 +110,21 @@ export const PdfImportView: React.FC = () => {
   };
 
   return (
-    <div className="p-6 h-full flex flex-col">
-      <div className="mb-6 shrink-0 flex items-center justify-between">
+    <div className="p-4 sm:p-6 h-full flex flex-col max-w-6xl mx-auto space-y-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 shrink-0">
         <div>
-          <h2 className="text-2xl font-black text-gray-800 flex items-center space-x-2">
+          <h2 className="text-xl sm:text-2xl font-black text-gray-800 flex items-center space-x-2">
             <FileText className="w-6 h-6 text-zeytin-600" />
             <span>PDF'den Ürün Aktar</span>
           </h2>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
             Tedarikçi faturasını yükleyin, yapay zeka içerisindeki ürünleri çıkarıp stoğa eklesin.
           </p>
         </div>
       </div>
 
       {error && (
-        <div className="mb-4 bg-red-50 text-red-700 border border-red-200 p-4 rounded-xl text-sm font-medium flex items-center space-x-2">
+        <div className="bg-red-50 text-red-700 border border-red-200 p-4 rounded-xl text-sm font-medium flex items-center space-x-2 shrink-0">
           <AlertTriangle className="w-5 h-5 shrink-0" />
           <span>{error}</span>
         </div>
@@ -132,14 +132,14 @@ export const PdfImportView: React.FC = () => {
 
       {step === 'upload' && (
         <div 
-          className="flex-1 bg-white border-2 border-dashed border-gray-300 rounded-3xl flex flex-col items-center justify-center p-8 hover:bg-gray-50 transition-colors cursor-pointer"
+          className="flex-1 bg-white border-2 border-dashed border-gray-300 rounded-3xl flex flex-col items-center justify-center p-6 sm:p-10 hover:bg-gray-50 transition-colors cursor-pointer min-h-[300px]"
           onClick={() => fileInputRef.current?.click()}
         >
-          <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mb-4">
-            <UploadCloud className="w-10 h-10 text-blue-500" />
+          <div className="w-16 h-16 sm:w-20 sm:h-20 bg-blue-50 rounded-full flex items-center justify-center mb-4">
+            <UploadCloud className="w-8 h-8 sm:w-10 sm:h-10 text-blue-500" />
           </div>
-          <h3 className="text-xl font-bold text-gray-800 mb-2">Fatura PDF Dosyasını Seçin</h3>
-          <p className="text-gray-500 text-sm max-w-md text-center">
+          <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-1 text-center">Fatura PDF Dosyasını Seçin</h3>
+          <p className="text-gray-500 text-xs sm:text-sm max-w-md text-center">
             Sürükleyip bırakın veya cihazınızdan seçmek için tıklayın. Sadece .pdf formatı desteklenmektedir.
           </p>
           <input 
@@ -153,43 +153,43 @@ export const PdfImportView: React.FC = () => {
       )}
 
       {step === 'analyzing' && (
-        <div className="flex-1 bg-white rounded-3xl flex flex-col items-center justify-center p-8 shadow-sm">
+        <div className="flex-1 bg-white rounded-3xl flex flex-col items-center justify-center p-8 shadow-sm min-h-[300px]">
           <Loader2 className="w-12 h-12 text-blue-500 animate-spin mb-4" />
           <h3 className="text-xl font-bold text-gray-800 mb-2">Belge İnceleniyor...</h3>
-          <p className="text-gray-500 text-sm">
+          <p className="text-gray-500 text-sm text-center">
             Yapay zeka fatura kalemlerini tespit edip mevcut stoğunuzla eşleştiriyor. Lütfen bekleyin.
           </p>
         </div>
       )}
 
       {step === 'preview' && invoiceData && (
-        <div className="flex-1 flex flex-col overflow-hidden bg-white rounded-xl shadow-xs border border-gray-200">
-          <div className="p-4 bg-gray-50 border-b border-gray-200 flex items-center justify-between shrink-0">
-            <div className="flex space-x-8">
+        <div className="flex-1 flex flex-col overflow-hidden bg-white rounded-2xl shadow-xs border border-gray-200 min-h-0">
+          <div className="p-3.5 sm:p-4 bg-gray-50 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
+            <div className="flex flex-wrap items-center gap-4 sm:gap-8">
               <div>
                 <span className="block text-[10px] uppercase font-bold text-gray-500">Tedarikçi</span>
-                <span className="font-bold text-gray-900">{invoiceData.supplierName}</span>
+                <span className="font-bold text-gray-900 text-sm">{invoiceData.supplierName}</span>
               </div>
               <div>
                 <span className="block text-[10px] uppercase font-bold text-gray-500">Fatura No</span>
-                <span className="font-bold text-gray-900">{invoiceData.invoiceNumber}</span>
+                <span className="font-bold text-gray-900 text-sm">{invoiceData.invoiceNumber}</span>
               </div>
               <div>
                 <span className="block text-[10px] uppercase font-bold text-gray-500">Tarih</span>
-                <span className="font-bold text-gray-900">{invoiceData.invoiceDate}</span>
+                <span className="font-bold text-gray-900 text-sm">{invoiceData.invoiceDate}</span>
               </div>
             </div>
             <div className="flex items-center space-x-2">
               <button
                 onClick={handleCancel}
-                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold rounded-lg text-xs transition-colors"
+                className="flex-1 sm:flex-initial px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold rounded-xl text-xs transition-colors cursor-pointer min-h-[40px]"
               >
                 İptal Et
               </button>
               <button
                 onClick={handleSubmit}
                 disabled={isSubmitting}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-xs flex items-center space-x-2 transition-colors disabled:opacity-50"
+                className="flex-1 sm:flex-initial px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs flex items-center justify-center space-x-1.5 transition-colors disabled:opacity-50 cursor-pointer min-h-[40px]"
               >
                 {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                 <span>Onayla ve Stoğa İşle</span>
@@ -221,7 +221,7 @@ export const PdfImportView: React.FC = () => {
                         type="text" 
                         value={item.barcode} 
                         onChange={(e) => handleItemChange(item.id, 'barcode', e.target.value)}
-                        className="w-32 bg-transparent border-b border-dashed border-gray-300 focus:border-blue-500 outline-none font-mono text-xs"
+                        className="w-32 bg-transparent border-b border-dashed border-gray-300 focus:border-blue-500 outline-none font-mono text-xs text-base sm:text-xs"
                       />
                     </td>
                     <td className="px-4 py-3 font-medium">
@@ -229,7 +229,7 @@ export const PdfImportView: React.FC = () => {
                         type="text" 
                         value={item.productName} 
                         onChange={(e) => handleItemChange(item.id, 'productName', e.target.value)}
-                        className="w-full min-w-[200px] bg-transparent border-b border-dashed border-gray-300 focus:border-blue-500 outline-none"
+                        className="w-full min-w-[200px] bg-transparent border-b border-dashed border-gray-300 focus:border-blue-500 outline-none text-base sm:text-sm"
                       />
                       {item.matchStatus === 'new' && (
                         <span className="ml-2 text-[9px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded uppercase font-bold">Yeni</span>
@@ -240,27 +240,27 @@ export const PdfImportView: React.FC = () => {
                         type="number" 
                         value={item.quantity} 
                         onChange={(e) => handleItemChange(item.id, 'quantity', Number(e.target.value))}
-                        className="w-16 bg-transparent border-b border-dashed border-gray-300 focus:border-blue-500 outline-none font-bold"
+                        className="w-16 bg-transparent border-b border-dashed border-gray-300 focus:border-blue-500 outline-none font-bold text-base sm:text-sm"
                       />
                     </td>
                     <td className="px-4 py-3">
                       <input 
                         type="number" 
-                        step="0.01"
+                        step="0.01" 
                         value={item.purchasePrice} 
                         onChange={(e) => handleItemChange(item.id, 'purchasePrice', Number(e.target.value))}
-                        className="w-20 bg-transparent border-b border-dashed border-gray-300 focus:border-blue-500 outline-none"
+                        className="w-20 bg-transparent border-b border-dashed border-gray-300 focus:border-blue-500 outline-none text-base sm:text-sm"
                       />
                     </td>
                     <td className="px-4 py-3">
                       {item.matchStatus === 'new' ? (
                         <input 
                           type="number" 
-                          step="0.01"
+                          step="0.01" 
                           placeholder="Zorunlu"
                           value={item.salePrice || ''} 
                           onChange={(e) => handleItemChange(item.id, 'salePrice', Number(e.target.value))}
-                          className="w-24 bg-amber-50 border border-amber-300 focus:border-blue-500 focus:bg-white rounded px-2 py-1 outline-none text-amber-900 font-bold"
+                          className="w-24 bg-amber-50 border border-amber-300 focus:border-blue-500 focus:bg-white rounded px-2 py-1 outline-none text-amber-900 font-bold text-base sm:text-sm"
                         />
                       ) : (
                         <span className="text-gray-400 text-xs italic" title="Mevcut satış fiyatı korunur">Değişmez</span>
@@ -269,7 +269,7 @@ export const PdfImportView: React.FC = () => {
                     <td className="px-4 py-3 text-center">
                       <button 
                         onClick={() => handleRemoveItem(item.id)}
-                        className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                         title="Satırı Çıkar"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -281,7 +281,7 @@ export const PdfImportView: React.FC = () => {
             </table>
           </div>
           
-          <div className="p-3 bg-white border-t border-gray-200 text-xs text-gray-500 flex space-x-4 shrink-0">
+          <div className="p-3 bg-white border-t border-gray-200 text-xs text-gray-500 flex flex-wrap gap-2 sm:gap-4 shrink-0">
             <div className="flex items-center space-x-1">
               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
               <span>Mevcut ürün, stok eklenecek</span>
