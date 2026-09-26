@@ -17,7 +17,11 @@ const AppContent: React.FC = () => {
     case 'EOD':
       return <EndOfDayView />;
     case 'ADMIN':
-      return <AdminView />;
+      return (
+        <PosProvider>
+          <AdminView />
+        </PosProvider>
+      );
     case 'POS':
     default:
       return <PosView />;

@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { Product, KasaId, KasaState, PaymentType, CartItem, SalePayload, Customer } from '../types/pos';
 import { posService } from '../api/posService';
+import { getTurkishWarning } from '../api/apiClient';
+import { showGlobalWarning } from '../utils/warningBus';
 import { PosAudio, formatCurrency } from '../utils/format';
 import { useAuth } from './AuthContext';
 
@@ -41,6 +43,7 @@ interface PosContextType {
   handleBarcodeScan: (barcodeOrName: string) => Promise<boolean>;
   completeSale: () => Promise<boolean>;
   showToast: (message: string, type?: 'success' | 'error' | 'info') => void;
+  dismissToast: () => void;
   hasAnyOpenBaskets: () => boolean;
   setProductsModalOpen: (open: boolean) => void;
   setCustomerModalOpen: (open: boolean) => void;
@@ -49,7 +52,7 @@ interface PosContextType {
   setApiSettingsOpen: (open: boolean) => void;
   refreshProducts: () => Promise<void>;
   refreshCustomers: () => Promise<void>;
-  addNewCustomer: (data: { name: string; phone?: string; note?: string }) => Promise<Customer>;
+  addNewCustomer: (data: { name: string; phone: string; note?: string }) => Promise<Customer>;
 }
 
 const PosContext = createContext<PosContextType | undefined>(undefined);
@@ -107,8 +110,8 @@ export const PosProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     try {
       const data = await posService.getCustomers();
       setCustomers(data);
-    } catch {
-      // Ignore
+    } catch (error: unknown) {
+      showToast(getTurkishWarning(error, 'Cari müşteriler yüklenemedi. Lütfen tekrar deneyin.'), 'error');
     }
   }, []);
 
@@ -118,11 +121,21 @@ export const PosProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [loadProducts, loadCustomers]);
 
   const showToast = useCallback((message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    const cleanMessage = String(message || '').trim() || 'İşlem tamamlanamadı. Lütfen tekrar deneyin.';
     const id = Date.now();
-    setToast({ id, message, type });
+    if (type === 'error') {
+      showGlobalWarning(cleanMessage);
+      return;
+    }
+
+    setToast({ id, message: cleanMessage, type });
     setTimeout(() => {
       setToast(current => (current?.id === id ? null : current));
     }, 3200);
+  }, []);
+
+  const dismissToast = useCallback(() => {
+    setToast(null);
   }, []);
 
   const currentKasa = useMemo(() => {
@@ -309,7 +322,7 @@ export const PosProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }, [addToCart, showToast]);
 
-  const addNewCustomer = useCallback(async (data: { name: string; phone?: string; note?: string }): Promise<Customer> => {
+  const addNewCustomer = useCallback(async (data: { name: string; phone: string; note?: string }): Promise<Customer> => {
     const created = await posService.createCustomer(data);
     await loadCustomers();
     setCustomerForActiveKasa(created);
@@ -390,8 +403,7 @@ export const PosProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     } catch (err: unknown) {
       PosAudio.playErrorTone();
-      const msg = err instanceof Error ? err.message : 'Satış sırasında hata oluştu';
-      showToast(msg, 'error');
+      showToast(getTurkishWarning(err, 'Satış tamamlanamadı. Lütfen tekrar deneyin.'), 'error');
       return false;
     } finally {
       setIsSubmittingSale(false);
@@ -434,6 +446,7 @@ export const PosProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         handleBarcodeScan,
         completeSale,
         showToast,
+        dismissToast,
         hasAnyOpenBaskets,
         setProductsModalOpen,
         setCustomerModalOpen,

@@ -265,33 +265,35 @@ export const ProductFormView: React.FC<Props> = ({ productId, onClose }) => {
           </select>
         </div>
 
-        {/* 4. Alış Fiyatı & 5. Satış Fiyatı */}
+        {/* 4. Satış Fiyatı & 5. Alış Fiyatı */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">
-              Alış Fiyatı (₺)
-            </label>
-            <input
-              type="text"
-              name="purchasePrice"
-              value={formData.purchasePrice}
-              onChange={handleInputChange}
-              placeholder="0.00"
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-zeytin-500 focus:outline-none text-base sm:text-sm font-bold transition-colors bg-gray-50 focus:bg-white"
-            />
-          </div>
-
           <div>
             <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">
               Satış Fiyatı (₺) <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
+              inputMode="decimal"
               name="price"
               value={formData.price}
               onChange={handleInputChange}
               placeholder="0.00"
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-zeytin-500 focus:outline-none text-base sm:text-sm font-black text-zeytin-800 transition-colors bg-gray-50 focus:bg-white"
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-zeytin-500 focus:outline-none text-base sm:text-sm font-black text-zeytin-800 transition-colors bg-gray-50 focus:bg-white font-mono"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">
+              Alış Fiyatı (₺) <span className="text-gray-400 font-normal">(Opsiyonel)</span>
+            </label>
+            <input
+              type="text"
+              inputMode="decimal"
+              name="purchasePrice"
+              value={formData.purchasePrice}
+              onChange={handleInputChange}
+              placeholder="0.00"
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-zeytin-500 focus:outline-none text-base sm:text-sm font-bold transition-colors bg-gray-50 focus:bg-white font-mono"
             />
           </div>
         </div>

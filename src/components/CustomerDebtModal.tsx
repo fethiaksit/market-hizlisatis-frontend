@@ -3,19 +3,21 @@ import { Customer } from '../types/pos';
 import { posService } from '../api/posService';
 import { usePos } from '../context/PosContext';
 import { formatCurrency } from '../utils/format';
-import { warningBus } from '../utils/warningBus';
+import { showGlobalWarning } from '../utils/warningBus';
 import { ShoppingBag, X, Check, AlertCircle } from 'lucide-react';
 
 interface CustomerDebtModalProps {
   customer: Customer | null;
   onClose: () => void;
-  onDebtSaved: () => void;
+  onDebtSaved?: () => void;
+  onSaved?: () => void;
 }
 
 export const CustomerDebtModal: React.FC<CustomerDebtModalProps> = ({
   customer,
   onClose,
   onDebtSaved,
+  onSaved,
 }) => {
   const { showToast, refreshCustomers } = usePos();
 
@@ -33,9 +35,11 @@ export const CustomerDebtModal: React.FC<CustomerDebtModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const numAmount = typeof amount === 'number' ? amount : parseFloat(amount);
+    const numAmount = typeof amount === 'number' ? amount : parseFloat(String(amount));
     if (isNaN(numAmount) || numAmount <= 0) {
-      setError('Lütfen sıfırdan büyük geçerli bir borç tutarı giriniz.');
+      const msg = 'Lütfen sıfırdan büyük geçerli bir borç tutarı giriniz.';
+      setError(msg);
+      showGlobalWarning(msg);
       return;
     }
 
@@ -43,19 +47,20 @@ export const CustomerDebtModal: React.FC<CustomerDebtModalProps> = ({
     setError('');
 
     try {
-      await posService.addCustomerDebt({
+      await posService.createCustomerDebt({
         customerId: customer.id,
         amount: numAmount,
         note: note.trim() || 'Manuel Borç Ekleme',
       });
 
       await refreshCustomers();
-      showToast(`Borç eklendi: ${formatCurrency(numAmount)} (${customer.name})`, 'success');
-      onDebtSaved();
+      showToast(`Cari hesaba borç eklendi: ${formatCurrency(numAmount)} (${customer.name})`, 'success');
+      onDebtSaved?.();
+      onSaved?.();
       onClose();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Borç eklenemedi!';
-      warningBus.showWarning(msg, 'Borç Eklenemedi');
+      showGlobalWarning(msg, 'Borç Eklenemedi');
       setError(msg);
     } finally {
       setIsSaving(false);
@@ -67,21 +72,21 @@ export const CustomerDebtModal: React.FC<CustomerDebtModalProps> = ({
     : customer.balance;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/65 backdrop-blur-xs flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[160] bg-black/65 backdrop-blur-xs flex items-center justify-center p-4">
       <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-gray-100 animate-in fade-in duration-150">
         {/* Header */}
-        <div className="bg-amber-800 text-white px-5 py-3.5 flex items-center justify-between shrink-0">
+        <div className="bg-amber-900 text-white px-5 py-3.5 flex items-center justify-between shrink-0">
           <div className="flex items-center space-x-2">
             <ShoppingBag className="w-5 h-5 text-amber-300" />
             <h3 className="text-base font-black tracking-wide">
-              MANUEL BORÇ EKLE
+              CARİ BORÇ EKLE
             </h3>
           </div>
 
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg bg-amber-700 hover:bg-amber-600 text-white transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg bg-amber-800 hover:bg-amber-700 text-white transition-colors cursor-pointer"
             title="Kapat"
           >
             <X className="w-5 h-5" />
@@ -104,7 +109,7 @@ export const CustomerDebtModal: React.FC<CustomerDebtModalProps> = ({
               Mevcut Borç:
             </span>
             <span className="text-sm font-black text-red-700">
-              {formatCurrency(customer.balance)} Borç
+              {formatCurrency(customer.balance)}
             </span>
           </div>
         </div>
@@ -169,7 +174,7 @@ export const CustomerDebtModal: React.FC<CustomerDebtModalProps> = ({
               value={note}
               onChange={(e) => setNote(e.target.value)}
               placeholder="Örn: Veresiye market alışverişi"
-              className="w-full px-3 py-2 bg-gray-50 border border-gray-300 focus:border-amber-600 focus:bg-white rounded-xl text-xs text-gray-900 focus:outline-none"
+              className="w-full px-3 py-2 bg-gray-50 border border-gray-300 focus:border-amber-600 focus:bg-white rounded-xl text-base sm:text-xs text-gray-900 focus:outline-none"
             />
           </div>
 
@@ -186,7 +191,7 @@ export const CustomerDebtModal: React.FC<CustomerDebtModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl text-xs cursor-pointer"
+              className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl text-xs cursor-pointer min-h-[40px]"
             >
               İptal
             </button>
@@ -194,7 +199,7 @@ export const CustomerDebtModal: React.FC<CustomerDebtModalProps> = ({
             <button
               type="submit"
               disabled={isSaving}
-              className="px-5 py-2.5 bg-amber-700 hover:bg-amber-800 disabled:bg-gray-300 text-white font-black rounded-xl text-xs cursor-pointer shadow-md flex items-center space-x-1.5"
+              className="px-5 py-2.5 bg-amber-700 hover:bg-amber-800 disabled:bg-gray-300 text-white font-black rounded-xl text-xs cursor-pointer shadow-md flex items-center space-x-1.5 min-h-[40px]"
             >
               <Check className="w-4 h-4" />
               <span>{isSaving ? 'Kaydediliyor...' : 'Borcu Onayla'}</span>

@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Cashier } from '../types/pos';
 
 import { posService } from '../api/posService';
+import { getTurkishWarning } from '../api/apiClient';
 
 interface AuthContextType {
   cashier: Cashier | null;
@@ -67,8 +68,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       return { success: false, message: 'Giriş yapılamadı. Kullanıcı bulunamadı.' };
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Giriş yapılamadı.';
-      return { success: false, message: msg };
+      return { success: false, message: getTurkishWarning(err, 'Giriş yapılamadı. Bilgilerinizi kontrol edip tekrar deneyin.') };
     }
   };
 
@@ -95,7 +95,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error('Yetkilendirme bileşeni kullanılamıyor.');
   }
   return context;
 };

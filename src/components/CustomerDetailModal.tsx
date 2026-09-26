@@ -3,24 +3,23 @@ import { Customer, CustomerTransaction, CustomerTransactionType } from '../types
 import { posService } from '../api/posService';
 import { usePos } from '../context/PosContext';
 import { formatCurrency } from '../utils/format';
-import { warningBus } from '../utils/warningBus';
 import { CustomerPaymentModal } from './CustomerPaymentModal';
 import { CustomerDebtModal } from './CustomerDebtModal';
 import { ReceiptDetailModal } from './ReceiptDetailModal';
+import { showGlobalWarning } from '../utils/warningBus';
 import { 
   Users, 
   X, 
-  Phone, 
-  Calendar, 
-  Filter, 
-  ShoppingBag, 
   Coins, 
-  RotateCcw, 
+  Phone,
+  Clock,
+  ArrowUpRight,
+  ArrowDownLeft,
   Receipt, 
-  UserCheck, 
-  Loader2,
   ChevronRight,
-  PlusCircle
+  UserCheck,
+  PlusCircle,
+  FileSpreadsheet
 } from 'lucide-react';
 
 interface CustomerDetailModalProps {
@@ -32,11 +31,12 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({
   customer,
   onClose,
 }) => {
-  const { setCustomerForActiveKasa, showToast, refreshCustomers } = usePos();
+  const { setCustomerForActiveKasa, setPaymentType, setCustomerModalOpen, showToast, refreshCustomers } = usePos();
 
   const [currentCustomer, setCurrentCustomer] = useState<Customer | null>(customer);
   const [transactions, setTransactions] = useState<CustomerTransaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentBalance, setCurrentBalance] = useState(customer?.balance || 0);
 
   // Filters
   const [startDate, setStartDate] = useState('');
@@ -51,6 +51,9 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({
   // Keep currentCustomer updated when prop changes
   useEffect(() => {
     setCurrentCustomer(customer);
+    if (customer) {
+      setCurrentBalance(customer.balance);
+    }
   }, [customer]);
 
   const refreshCustomerDetails = useCallback(async () => {
@@ -58,6 +61,7 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({
     try {
       const updated = await posService.getCustomerDetails(currentCustomer.id);
       setCurrentCustomer(updated);
+      setCurrentBalance(updated.balance);
     } catch {
       // Keep existing currentCustomer if details fetch fails
     }
@@ -67,19 +71,25 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({
     if (!currentCustomer) return;
     setLoading(true);
     try {
-      const data = await posService.getCustomerTransactions(currentCustomer.id, {
-        startDate: startDate || undefined,
-        endDate: endDate || undefined,
-        type: selectedType !== 'ALL' ? selectedType : undefined,
-      });
+      const [data, balanceInfo] = await Promise.all([
+        posService.getCustomerTransactions(currentCustomer.id, {
+          startDate: startDate || undefined,
+          endDate: endDate || undefined,
+          type: selectedType !== 'ALL' ? selectedType : undefined,
+        }),
+        posService.getCustomerBalance(currentCustomer.id).catch(() => ({ balance: currentCustomer.balance })),
+      ]);
       setTransactions(data);
+      if (balanceInfo && typeof balanceInfo.balance === 'number') {
+        setCurrentBalance(balanceInfo.balance);
+      }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Hareketler yüklenemedi.';
-      warningBus.showWarning(msg, 'Ekstre Yükleme Hatası');
+      showGlobalWarning(msg, 'Ekstre Yükleme Hatası');
     } finally {
       setLoading(false);
     }
-  }, [currentCustomer?.id, startDate, endDate, selectedType]);
+  }, [currentCustomer, startDate, endDate, selectedType]);
 
   useEffect(() => {
     loadTransactions();
@@ -95,7 +105,9 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({
 
   const handleSelectForSale = () => {
     setCustomerForActiveKasa(currentCustomer);
-    showToast(`Cari satışa seçildi: ${currentCustomer.name}`, 'success');
+    setPaymentType('CREDIT');
+    setCustomerModalOpen(false);
+    showToast(`Cari satışa seçildi ve ödeme türü CARİ yapıldı: ${currentCustomer.name}`, 'success');
     onClose();
   };
 
@@ -146,9 +158,9 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({
                 GÜNCEL BAKİYE
               </span>
               <span className={`text-xl font-black ${
-                currentCustomer.balance > 0 ? 'text-red-400' : 'text-emerald-400'
+                currentBalance > 0 ? 'text-red-400' : 'text-emerald-400'
               }`}>
-                {formatCurrency(currentCustomer.balance)} {currentCustomer.balance > 0 ? 'Borç' : ''}
+                {formatCurrency(currentBalance)} {currentBalance > 0 ? 'Borç' : ''}
               </span>
             </div>
 
@@ -156,7 +168,7 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({
               <button
                 type="button"
                 onClick={() => setIsDebtModalOpen(true)}
-                className="py-2 px-3 bg-amber-700 hover:bg-amber-600 active:bg-amber-800 text-white font-extrabold rounded-xl text-xs flex items-center space-x-1 shadow-sm transition-all cursor-pointer whitespace-nowrap"
+                className="py-2 px-3 bg-amber-700 hover:bg-amber-600 active:bg-amber-800 text-white font-extrabold rounded-xl text-xs flex items-center space-x-1 shadow-sm transition-all cursor-pointer whitespace-nowrap min-h-[36px]"
               >
                 <PlusCircle className="w-4 h-4" />
                 <span>Borç Ekle</span>
@@ -165,7 +177,7 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({
               <button
                 type="button"
                 onClick={() => setIsPaymentModalOpen(true)}
-                className="py-2 px-3 bg-emerald-700 hover:bg-emerald-600 active:bg-emerald-800 text-white font-extrabold rounded-xl text-xs flex items-center space-x-1 shadow-sm transition-all cursor-pointer whitespace-nowrap"
+                className="py-2 px-3 bg-emerald-700 hover:bg-emerald-600 active:bg-emerald-800 text-white font-extrabold rounded-xl text-xs flex items-center space-x-1 shadow-sm transition-all cursor-pointer whitespace-nowrap min-h-[36px]"
               >
                 <Coins className="w-4 h-4" />
                 <span>Tahsilat Al</span>
@@ -174,7 +186,7 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({
               <button
                 type="button"
                 onClick={handleSelectForSale}
-                className="py-2 px-3 bg-zeytin-700 hover:bg-zeytin-600 text-white font-extrabold rounded-xl text-xs flex items-center space-x-1 shadow-sm transition-all cursor-pointer whitespace-nowrap"
+                className="py-2 px-3 bg-zeytin-700 hover:bg-zeytin-600 text-white font-extrabold rounded-xl text-xs flex items-center space-x-1 shadow-sm transition-all cursor-pointer whitespace-nowrap min-h-[36px]"
               >
                 <UserCheck className="w-4 h-4" />
                 <span>Satışa Seç</span>
@@ -183,124 +195,122 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({
           </div>
         </div>
 
-        {/* Filter Bar */}
-        <div className="bg-gray-50 px-4 py-2.5 border-b border-gray-200 flex flex-wrap items-center justify-between gap-2 text-xs shrink-0">
-          {/* Type Filter Tabs */}
-          <div className="flex items-center space-x-1">
-            <span className="text-gray-400 mr-1 flex items-center gap-1 font-bold">
-              <Filter className="w-3 h-3" />
-              <span>Tür:</span>
-            </span>
-            {[
-              { id: 'ALL', label: 'Tümü' },
-              { id: 'DEBT', label: 'Borç' },
-              { id: 'PAYMENT', label: 'Tahsilat' },
-              { id: 'SALE', label: 'Satış' },
-              { id: 'RETURN', label: 'İade' },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setSelectedType(tab.id as CustomerTransactionType | 'ALL')}
-                className={`px-2.5 py-1 rounded-lg font-bold transition-colors cursor-pointer ${
-                  selectedType === tab.id
-                    ? 'bg-zeytin-700 text-white shadow-2xs'
-                    : 'bg-white hover:bg-gray-200 text-gray-700 border border-gray-200'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
+        {/* Filters */}
+        <div className="bg-gray-50 border-b border-gray-200 p-3 flex flex-wrap items-center gap-2 text-xs shrink-0">
+          <div className="flex items-center space-x-1.5">
+            <span className="font-bold text-gray-500">Tür:</span>
+            <select
+              value={selectedType}
+              onChange={(e) => setSelectedType(e.target.value as CustomerTransactionType | 'ALL')}
+              className="bg-white border border-gray-200 rounded-lg px-2 py-1 text-gray-800 font-bold focus:outline-none focus:ring-1 focus:ring-zeytin-500 text-base sm:text-xs"
+            >
+              <option value="ALL">Tümü</option>
+              <option value="SALE">Satış (Borç)</option>
+              <option value="PAYMENT">Tahsilat (Ödeme)</option>
+              <option value="DEBT">Manuel Borç</option>
+            </select>
           </div>
 
-          {/* Date Range Inputs */}
           <div className="flex items-center space-x-1.5">
-            <Calendar className="w-3.5 h-3.5 text-gray-400" />
+            <span className="font-bold text-gray-500">Tarih:</span>
             <input
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="bg-white border border-gray-300 rounded-lg px-2 py-1 text-xs text-gray-800 focus:outline-none focus:border-zeytin-600"
-              title="Başlangıç Tarihi"
+              className="bg-white border border-gray-200 rounded-lg px-2 py-1 text-gray-800 font-medium focus:outline-none focus:ring-1 focus:ring-zeytin-500 text-base sm:text-xs"
             />
             <span className="text-gray-400">-</span>
             <input
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="bg-white border border-gray-300 rounded-lg px-2 py-1 text-xs text-gray-800 focus:outline-none focus:border-zeytin-600"
-              title="Bitiş Tarihi"
+              className="bg-white border border-gray-200 rounded-lg px-2 py-1 text-gray-800 font-medium focus:outline-none focus:ring-1 focus:ring-zeytin-500 text-base sm:text-xs"
             />
           </div>
+
+          {(startDate || endDate || selectedType !== 'ALL') && (
+            <button
+              type="button"
+              onClick={() => {
+                setStartDate('');
+                setEndDate('');
+                setSelectedType('ALL');
+              }}
+              className="text-xs text-zeytin-700 font-bold hover:underline cursor-pointer ml-auto"
+            >
+              Filtreleri Temizle
+            </button>
+          )}
         </div>
 
-        {/* Transactions List */}
-        <div className="flex-1 min-h-0 overflow-y-auto divide-y divide-gray-100 p-3 space-y-2">
+        {/* Transaction History List */}
+        <div className="flex-1 overflow-y-auto divide-y divide-gray-100 p-2 sm:p-4 bg-gray-50/50">
           {loading ? (
-            <div className="p-12 text-center text-gray-500 flex items-center justify-center space-x-2">
-              <Loader2 className="w-5 h-5 animate-spin text-zeytin-700" />
-              <span className="text-xs font-bold">Ekstre hareketleri yükleniyor...</span>
+            <div className="p-10 text-center text-gray-400 font-medium text-xs">
+              Ekstre hareketleri yükleniyor...
             </div>
           ) : transactions.length === 0 ? (
-            <div className="p-12 text-center text-gray-400 text-xs">
-              <Receipt className="w-8 h-8 mx-auto mb-2 text-gray-300" />
-              <p className="font-bold text-gray-600">Bu kritere uygun cari hareket bulunamadı.</p>
+            <div className="p-12 text-center text-gray-400 space-y-2">
+              <FileSpreadsheet className="w-10 h-10 mx-auto opacity-30 text-gray-400" />
+              <p className="text-sm font-bold text-gray-600">Henüz cari hareket bulunmuyor</p>
+              <p className="text-xs text-gray-400">Bu müşteriye ait borç, satış veya tahsilat kaydı bulunamadı.</p>
             </div>
           ) : (
             transactions.map((tx) => (
               <div
                 key={tx.id}
-                className="bg-white hover:bg-gray-50/90 border border-gray-200 rounded-2xl p-3 flex items-center justify-between gap-3 transition-colors shadow-2xs"
+                className="p-3 bg-white rounded-xl border border-gray-100 mb-2 shadow-2xs hover:shadow-xs transition-shadow flex items-center justify-between gap-3"
               >
                 {/* Left: Icon & Description */}
-                <div className="flex items-center space-x-3 min-w-0 flex-1">
-                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
-                    tx.type === 'DEBT'
-                      ? 'bg-amber-100 text-amber-800'
-                      : tx.type === 'SALE'
-                      ? 'bg-blue-100 text-blue-800'
-                      : tx.type === 'PAYMENT'
-                      ? 'bg-emerald-100 text-emerald-800'
-                      : 'bg-indigo-100 text-indigo-800'
+                <div className="flex items-center space-x-3 min-w-0">
+                  <div className={`p-2 rounded-xl shrink-0 ${
+                    tx.type === 'DEBT' || tx.type === 'SALE'
+                      ? 'bg-red-50 text-red-600'
+                      : 'bg-emerald-50 text-emerald-600'
                   }`}>
-                    {tx.type === 'DEBT' && <PlusCircle className="w-5 h-5" />}
-                    {tx.type === 'SALE' && <ShoppingBag className="w-5 h-5" />}
-                    {tx.type === 'PAYMENT' && <Coins className="w-5 h-5" />}
-                    {tx.type === 'RETURN' && <RotateCcw className="w-5 h-5" />}
+                    {tx.type === 'DEBT' || tx.type === 'SALE' ? (
+                      <ArrowUpRight className="w-5 h-5" />
+                    ) : (
+                      <ArrowDownLeft className="w-5 h-5" />
+                    )}
                   </div>
 
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className={`px-2 py-0.2 rounded font-extrabold text-[10px] ${
-                        tx.type === 'DEBT'
-                          ? 'bg-amber-100 text-amber-900 border border-amber-300'
-                          : tx.type === 'SALE'
-                          ? 'bg-blue-100 text-blue-900 border border-blue-300'
-                          : tx.type === 'PAYMENT'
-                          ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
-                          : 'bg-indigo-100 text-indigo-900 border border-indigo-300'
+                  <div className="min-w-0">
+                    <div className="flex items-center space-x-2">
+                      <span className={`text-[10px] font-black uppercase px-1.5 py-0.5 rounded ${
+                        tx.type === 'SALE'
+                          ? 'bg-red-100 text-red-800'
+                          : tx.type === 'DEBT'
+                          ? 'bg-amber-100 text-amber-800'
+                          : 'bg-emerald-100 text-emerald-800'
                       }`}>
-                        {tx.type === 'DEBT' ? 'BORÇ' : tx.type === 'SALE' ? 'SATIŞ' : tx.type === 'PAYMENT' ? 'TAHSİLAT' : 'İADE'}
+                        {tx.type === 'SALE' ? 'Satış' : tx.type === 'DEBT' ? 'Borç' : 'Tahsilat'}
                       </span>
 
-                      <span className="text-xs font-bold text-gray-500">
-                        {tx.date} • {tx.time}
-                      </span>
+                      {tx.receiptNo && (
+                        <span className="text-xs font-mono font-bold text-gray-700 bg-gray-100 px-1.5 py-0.5 rounded">
+                          Fiş #{tx.receiptNo}
+                        </span>
+                      )}
                     </div>
 
-                    <div className="text-xs text-gray-600 mt-1 flex flex-wrap items-center gap-2">
-                      {tx.note && (
-                        <span className="font-medium text-gray-800">
-                          {tx.note}
-                        </span>
-                      )}
-                      {tx.receiptNo && (
-                        <span className="font-mono font-bold text-gray-900">
-                          • {tx.receiptNo}
-                        </span>
-                      )}
+                    <p className="text-xs text-gray-700 font-medium mt-1 truncate">
+                      {tx.note || (tx.type === 'SALE' ? 'Veresiye Satış' : tx.type === 'DEBT' ? 'Manuel Borç' : 'Cari Tahsilat')}
+                    </p>
+
+                    <div className="flex items-center space-x-2 text-[10px] text-gray-400 mt-0.5">
+                      <span className="flex items-center gap-0.5">
+                        <Clock className="w-3 h-3" />
+                        {new Date(tx.createdAt).toLocaleString('tr-TR', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </span>
                       {tx.cashierName && (
-                        <span className="text-gray-500">• {tx.cashierName}</span>
+                        <span>• Kasiyer: {tx.cashierName}</span>
                       )}
                     </div>
                   </div>
@@ -321,11 +331,11 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({
                     </div>
                   </div>
 
-                  {/* Fiş Detayı Butonu (Only for SALE transactions with receiptNo) */}
-                  {tx.receiptNo && (
+                  {/* Fiş Detayı Butonu (Only for SALE transactions) */}
+                  {(tx.receiptNo || tx.saleId) && (
                     <button
                       type="button"
-                      onClick={() => setSelectedReceiptNo(tx.receiptNo || null)}
+                      onClick={() => setSelectedReceiptNo(String(tx.receiptNo || tx.saleId))}
                       className="p-2 bg-gray-100 hover:bg-zeytin-100 hover:text-zeytin-900 text-gray-600 rounded-xl transition-colors cursor-pointer flex items-center space-x-1"
                       title="Fiş Detayını Gör"
                     >
@@ -346,7 +356,7 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="py-2 px-5 bg-gray-900 hover:bg-gray-800 text-white font-bold rounded-xl transition-colors cursor-pointer"
+            className="py-2 px-5 bg-gray-900 hover:bg-gray-800 text-white font-bold rounded-xl transition-colors cursor-pointer min-h-[36px]"
           >
             Kapat
           </button>
@@ -358,6 +368,7 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({
         customer={isDebtModalOpen ? currentCustomer : null}
         onClose={() => setIsDebtModalOpen(false)}
         onDebtSaved={handleTransactionSaved}
+        onSaved={handleTransactionSaved}
       />
 
       <CustomerPaymentModal

@@ -4,6 +4,7 @@ import { Customer } from '../../types/pos';
 import { formatCurrency } from '../../utils/format';
 import { usePos } from '../../context/PosContext';
 import { CustomerDetailModal } from '../../components/CustomerDetailModal';
+import { showGlobalWarning } from '../../utils/warningBus';
 import { 
   Users, 
   UserPlus, 
@@ -21,8 +22,6 @@ import {
   Power
 } from 'lucide-react';
 
-import { warningBus } from '../../utils/warningBus';
-
 export const CustomersManagementView: React.FC = () => {
   const { showToast } = usePos();
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -33,6 +32,7 @@ export const CustomersManagementView: React.FC = () => {
   // Modal States
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+  const [formMode, setFormMode] = useState<'CREATE' | 'EDIT'>('CREATE');
   const [detailCustomer, setDetailCustomer] = useState<Customer | null>(null);
 
   // Form Fields
@@ -86,6 +86,7 @@ export const CustomersManagementView: React.FC = () => {
   }, [customers]);
 
   const handleOpenCreateModal = () => {
+    setFormMode('CREATE');
     setEditingCustomer(null);
     setName('');
     setPhone('');
@@ -98,6 +99,7 @@ export const CustomersManagementView: React.FC = () => {
   };
 
   const handleOpenEditModal = (cust: Customer) => {
+    setFormMode('EDIT');
     setEditingCustomer(cust);
     setName(cust.name);
     setPhone(cust.phone || '');
@@ -133,14 +135,18 @@ export const CustomersManagementView: React.FC = () => {
       loadCustomers();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Durum değiştirilemedi!';
-      warningBus.showWarning(msg, 'İşlem Başarısız');
+      showGlobalWarning(msg);
     }
   };
 
-  const handleFormSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const saveCustomer = async () => {
     if (!name.trim()) {
-      setFormError('Lütfen Ad Soyad / Cari Adı alanını doldurunuz.');
+      showGlobalWarning('Lütfen Ad Soyad / Cari Adı alanını doldurun.');
+      return;
+    }
+
+    if (!phone.trim()) {
+      showGlobalWarning('Telefon numarası zorunludur.');
       return;
     }
 
@@ -148,7 +154,7 @@ export const CustomersManagementView: React.FC = () => {
     if (creditLimit.trim()) {
       const val = parseFloat(creditLimit.replace(',', '.'));
       if (isNaN(val) || val < 0) {
-        setFormError('Lütfen geçerli bir cari limit giriniz.');
+        showGlobalWarning('Lütfen geçerli bir cari limit girin.');
         return;
       }
       parsedLimit = val;
@@ -167,7 +173,11 @@ export const CustomersManagementView: React.FC = () => {
         credit_limit: parsedLimit,
       };
 
-      if (editingCustomer) {
+      if (formMode === 'EDIT') {
+        if (!editingCustomer) {
+          showGlobalWarning('Düzenlenecek cari müşteri bulunamadı. Pencereyi kapatıp tekrar deneyin.');
+          return;
+        }
         await posService.updateCustomer(editingCustomer.id, payload);
         showToast('Cari müşteri başarıyla güncellendi.', 'success');
       } else {
@@ -176,14 +186,21 @@ export const CustomersManagementView: React.FC = () => {
       }
 
       setIsFormOpen(false);
+      setEditingCustomer(null);
+      setFormMode('CREATE');
       loadCustomers();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Kayıt işlemi başarısız!';
-      warningBus.showWarning(msg, 'Cari Kaydı Başarısız');
+      showGlobalWarning(msg);
       setFormError(msg);
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleFormSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await saveCustomer();
   };
 
   return (
@@ -475,13 +492,17 @@ export const CustomersManagementView: React.FC = () => {
               <div className="flex items-center space-x-2">
                 <Users className="w-5 h-5 text-zeytin-300" />
                 <h3 className="text-base font-black tracking-wide">
-                  {editingCustomer ? 'CARİ MÜŞTERİ DÜZENLE' : 'YENİ CARİ MÜŞTERİ EKLE'}
+                  {formMode === 'EDIT' ? 'CARİ MÜŞTERİ DÜZENLE' : 'YENİ CARİ MÜŞTERİ EKLE'}
                 </h3>
               </div>
 
               <button
                 type="button"
-                onClick={() => setIsFormOpen(false)}
+                onClick={() => {
+                  setIsFormOpen(false);
+                  setEditingCustomer(null);
+                  setFormMode('CREATE');
+                }}
                 className="p-1.5 rounded-lg bg-zeytin-800 hover:bg-zeytin-700 text-white transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
@@ -515,7 +536,7 @@ export const CustomersManagementView: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
-                  Telefon Numarası
+                  Telefon Numarası <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <Phone className="w-4 h-4 absolute left-3 top-2.5 text-gray-400" />
@@ -589,7 +610,8 @@ export const CustomersManagementView: React.FC = () => {
                 </button>
 
                 <button
-                  type="submit"
+                  type="button"
+                  onClick={saveCustomer}
                   disabled={isSaving}
                   className="px-5 py-2.5 bg-zeytin-700 hover:bg-zeytin-800 disabled:bg-gray-300 text-white font-black rounded-xl text-xs cursor-pointer shadow-sm flex items-center space-x-1.5"
                 >

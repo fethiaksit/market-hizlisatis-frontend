@@ -354,7 +354,7 @@ export const posService = {
     if (query.trim()) params.append('q', query.trim());
     if (showInactive) params.append('is_active', 'all');
 
-    const list = await apiFetch<any[]>(`/customers?${params.toString()}`);
+    const list = await apiFetch<any[]>(`/admin/customers?${params.toString()}`);
     const items = Array.isArray(list) ? list : [];
     return items.map(c => ({
       id: c.id,
@@ -426,16 +426,22 @@ export const posService = {
       params.append('type', typeMap[filters.type] || filters.type.toLowerCase());
     }
 
-    const list = await apiFetch<any[]>(`/customers/${customerId}/transactions?${params.toString()}`);
+    const list = await apiFetch<any[]>(`/admin/customers/${customerId}/transactions`);
     const items = Array.isArray(list) ? list : [];
-    return items.map(t => {
+
+    let runningBalance = 0;
+    const mappedOldestFirst = [...items].reverse().map(t => {
+      const amount = Number(t.amount || 0);
+      if (t.type === 'debt') runningBalance += amount;
+      if (t.type === 'payment') runningBalance -= amount;
+
       let mappedType: CustomerTransactionType = 'DEBT';
       if (t.type === 'payment') {
         mappedType = 'PAYMENT';
       } else if (t.type === 'return') {
         mappedType = 'RETURN';
       } else if (t.type === 'debt') {
-        if (t.sale_id || t.receipt_no || (t.note && t.note.toLowerCase().includes('satış'))) {
+        if (t.sale_id || t.receipt_no || t.sale_no || (t.note && t.note.toLowerCase().includes('satış'))) {
           mappedType = 'SALE';
         } else {
           mappedType = 'DEBT';
@@ -446,16 +452,31 @@ export const posService = {
         id: String(t.id),
         customerId: t.customer_id,
         type: mappedType,
-        amount: Number(t.amount || 0),
-        balanceAfter: Number(t.balance_after || 0),
+        amount,
+        balanceAfter: t.balance_after ? Number(t.balance_after) : runningBalance,
         date: t.transaction_date ? t.transaction_date.split('T')[0] : (t.created_at ? t.created_at.split('T')[0] : ''),
         time: t.created_at ? new Date(t.created_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }) : '',
         createdAt: t.created_at || new Date().toISOString(),
-        saleId: t.sale_id,
-        receiptNo: t.receipt_no,
+        saleId: t.sale_id || undefined,
+        receiptNo: t.sale_no || t.receipt_no || undefined,
         note: t.note || '',
-      };
+      } as CustomerTransaction;
     });
+
+    return mappedOldestFirst.reverse();
+  },
+
+  async getCustomerBalance(customerId: string | number): Promise<{
+    balance: number;
+    debt_total: number;
+    payment_total: number;
+  }> {
+    const data = await apiFetch<any>(`/admin/customers/${customerId}/balance`);
+    return {
+      balance: Number(data?.balance || 0),
+      debt_total: Number(data?.debt_total || 0),
+      payment_total: Number(data?.payment_total || 0),
+    };
   },
 
   async getSaleDetail(saleIdOrReceiptNo: string | number): Promise<SaleRecord | null> {
@@ -472,8 +493,11 @@ export const posService = {
     }
   },
 
-  async createCustomer(data: { name: string; phone?: string; note?: string; address?: string; is_active?: boolean; credit_limit?: number | null }): Promise<Customer> {
+  async createCustomer(data: { name: string; phone: string; note?: string; address?: string; is_active?: boolean; credit_limit?: number | null }): Promise<Customer> {
     const cleanPhone = (data.phone || '').trim();
+    if (!cleanPhone) {
+      throw new Error('Telefon numarası zorunludur.');
+    }
     if (isMockMode()) {
       const customers = getStoredCustomers();
       
@@ -502,9 +526,9 @@ export const posService = {
       return newCustomer;
     }
 
-    const c = await apiFetch<any>('/customers', {
+    const c = await apiFetch<any>('/admin/customers', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify({ ...data, phone: cleanPhone }),
     });
     return {
       id: c.id,
@@ -520,7 +544,7 @@ export const posService = {
     };
   },
 
-  async updateCustomer(id: string | number, data: { name: string; phone?: string; note?: string; address?: string; is_active?: boolean; credit_limit?: number | null }): Promise<Customer> {
+  async updateCustomer(id: string | number, data: { name: string; phone: string; note?: string; address?: string; is_active?: boolean; credit_limit?: number | null }): Promise<Customer> {
     if (isMockMode()) {
       const customers = getStoredCustomers();
       const customer = customers.find(c => String(c.id) === String(id));
@@ -535,9 +559,14 @@ export const posService = {
       return customer;
     }
 
-    const c = await apiFetch<any>(`/customers/${id}`, {
+    const cleanPhone = (data.phone || '').trim();
+    if (!cleanPhone) {
+      throw new Error('Telefon numarası zorunludur.');
+    }
+
+    const c = await apiFetch<any>(`/admin/customers/${id}`, {
       method: 'PUT',
-      body: JSON.stringify(data),
+      body: JSON.stringify({ ...data, phone: cleanPhone }),
     });
     return {
       id: c.id,
@@ -564,12 +593,12 @@ export const posService = {
       return;
     }
 
-    await apiFetch(`/customers/${id}`, {
+    await apiFetch(`/admin/customers/${id}`, {
       method: 'DELETE',
     });
   },
 
-  async addCustomerDebt(data: {
+  async createCustomerDebt(data: {
     customerId: string | number;
     amount: number;
     note?: string;
@@ -603,7 +632,7 @@ export const posService = {
       return newTx;
     }
 
-    return await apiFetch<any>(`/customers/${data.customerId}/transactions`, {
+    return await apiFetch<CustomerTransaction>(`/admin/customers/${data.customerId}/transactions`, {
       method: 'POST',
       body: JSON.stringify({
         customer_id: Number(data.customerId),
@@ -613,6 +642,14 @@ export const posService = {
         note: data.note || 'Manuel Borç Ekleme',
       }),
     });
+  },
+
+  async addCustomerDebt(data: {
+    customerId: string | number;
+    amount: number;
+    note?: string;
+  }): Promise<CustomerTransaction> {
+    return this.createCustomerDebt(data);
   },
 
   async createCustomerPayment(data: {
@@ -661,10 +698,9 @@ export const posService = {
       return newTx;
     }
 
-    return await apiFetch<any>(`/customers/${data.customerId}/transactions`, {
+    return await apiFetch<CustomerTransaction>(`/admin/customers/${data.customerId}/transactions`, {
       method: 'POST',
       body: JSON.stringify({
-        customer_id: Number(data.customerId),
         type: 'payment',
         amount: data.amount,
         transaction_date: new Date().toISOString().split('T')[0],
@@ -882,11 +918,13 @@ export const posService = {
       id: string | number;
       sale_no: string;
       total_amount: number;
+      customer_new_balance?: number | string | null;
       items?: Array<{ quantity: number }>;
     }>('/sales', {
       method: 'POST',
       body: JSON.stringify({
         payment_method: paymentMethodMap[payload.paymentType],
+        customer_id: payload.paymentType === 'CREDIT' ? Number(payload.customerId) : undefined,
         items: payload.items.map(item => ({
           product_id: Number(item.productId),
           barcode: item.barcode,
@@ -902,6 +940,10 @@ export const posService = {
       message: 'Satış başarıyla tamamlandı',
       total: Number(sale.total_amount || 0),
       itemsCount: (sale.items || []).reduce((sum, item) => sum + Number(item.quantity || 0), 0),
+      customerNewBalance:
+        sale.customer_new_balance !== undefined && sale.customer_new_balance !== null
+          ? Number(sale.customer_new_balance)
+          : undefined,
     };
   },
 
@@ -1100,10 +1142,11 @@ export const posService = {
       body: JSON.stringify({
         name: data.name,
         barcode: data.barcode,
-        price: data.price,
-        purchasePrice: data.purchasePrice ?? 0,
-        stock: data.stock || 0,
         category: data.category || '',
+        sale_price: data.price,
+        purchase_price: data.purchasePrice ?? 0,
+        critical_stock: 0,
+        is_active: true,
         brand: '',
         description: '',
         image_url: data.imageUrl || '',
@@ -1176,10 +1219,11 @@ export const posService = {
       body: JSON.stringify({
         name: data.name,
         barcode: data.barcode,
-        price: data.price,
-        purchasePrice: data.purchasePrice ?? 0,
-        stock: 0,
         category: data.category || '',
+        sale_price: data.price,
+        purchase_price: data.purchasePrice ?? 0,
+        critical_stock: 0,
+        is_active: true,
         brand: '',
         description: '',
         image_url: data.imageUrl !== undefined ? data.imageUrl : '',

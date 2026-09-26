@@ -1,3 +1,21 @@
+export type GlobalWarningDetail = {
+  message: string;
+  title?: string;
+  details?: string;
+};
+
+export const GLOBAL_WARNING_EVENT = 'zeytin:warning';
+
+export function showGlobalWarning(message: string, title = 'Uyarı', details?: string) {
+  const clean = sanitizeErrorMessage(message);
+  window.dispatchEvent(
+    new CustomEvent<GlobalWarningDetail>(GLOBAL_WARNING_EVENT, {
+      detail: { message: clean, title, details },
+    }),
+  );
+  warningBus.emit({ title, message: clean, details });
+}
+
 export interface WarningEvent {
   title: string;
   message: string;
@@ -16,11 +34,14 @@ class WarningBus {
     };
   }
 
-  showWarning(message: string, title = 'Uyarı', details?: string) {
-    const sanitizedMsg = sanitizeErrorMessage(message);
+  emit(event: WarningEvent) {
     for (const listener of this.listeners) {
-      listener({ title, message: sanitizedMsg, details });
+      listener(event);
     }
+  }
+
+  showWarning(message: string, title = 'Uyarı', details?: string) {
+    showGlobalWarning(message, title, details);
   }
 }
 
@@ -28,9 +49,7 @@ export const warningBus = new WarningBus();
 
 export function sanitizeErrorMessage(rawMessage: string): string {
   if (!rawMessage) return 'İşlem sırasında beklenmeyen bir hata oluştu.';
-
   const lower = rawMessage.toLowerCase();
-
   if (lower.includes('sqlstate') || lower.includes('gorm') || lower.includes('postgres') || lower.includes('database')) {
     return 'Veritabanı işlemi gerçekleştirilemedi. Lütfen bilgilerinizi kontrol edin.';
   }
@@ -41,7 +60,7 @@ export function sanitizeErrorMessage(rawMessage: string): string {
     return 'Sunucuda bir hata meydana geldi.';
   }
   if (lower.includes('forbidden') || lower.includes('403') || lower.includes('yönetici yetkisi')) {
-    return 'Bu işlem için yönetici yetkisi gerekmektedir.';
+    return 'Bu işlem için yetkiniz bulunmuyor.';
   }
   if (lower.includes('unauthorized') || lower.includes('401')) {
     return 'Oturum süreniz doldu. Lütfen yeniden giriş yapın.';
@@ -58,6 +77,5 @@ export function sanitizeErrorMessage(rawMessage: string): string {
   if (lower.includes('bu telefon numarasıyla kayıtlı')) {
     return 'Bu telefon numarasıyla kayıtlı bir cari müşteri zaten bulunuyor.';
   }
-
   return rawMessage;
 }

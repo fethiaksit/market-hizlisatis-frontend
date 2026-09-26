@@ -11,7 +11,7 @@ import { CustomerModal } from '../components/CustomerModal';
 import { CustomerDetailModal } from '../components/CustomerDetailModal';
 import { LogoutConfirmModal } from '../components/LogoutConfirmModal';
 import { ApiSettingsModal } from '../components/ApiSettingsModal';
-import { ToastNotification } from '../components/ToastNotification';
+import { AppInfo } from '../components/AppInfo';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import { usePos } from '../context/PosContext';
 import { formatCurrency } from '../utils/format';
@@ -79,7 +79,10 @@ export const PosView: React.FC = () => {
 
             <div className="pt-1.5 border-t border-gray-100 flex items-center justify-between text-[10px] text-gray-400 shrink-0">
               <span>USB Barkod okuyucu klavye modunda kesintisiz çalışır.</span>
-              <span className="font-mono font-bold text-zeytin-700">POS HAZIR</span>
+              <div className="flex items-center space-x-2">
+                <AppInfo />
+                <span className="font-mono font-bold text-zeytin-700">POS HAZIR</span>
+              </div>
             </div>
           </div>
         </div>
@@ -150,7 +153,6 @@ export const PosView: React.FC = () => {
       )}
       <LogoutConfirmModal />
       <ApiSettingsModal />
-      <ToastNotification />
     </div>
   );
 };
