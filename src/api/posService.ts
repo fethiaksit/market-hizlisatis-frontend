@@ -1438,11 +1438,28 @@ export const posService = {
       note: e.note || 'Toplu stok girişi',
     }));
 
-    const res = await apiFetch<any[]>('/stock-movements/bulk', {
-      method: 'POST',
-      body: JSON.stringify({ entries: formattedEntries }),
-    });
-    return Array.isArray(res) ? res.map(mapBackendStockMovementToFrontend) : [];
+    try {
+      const res = await apiFetch<any[]>('/stock-movements/bulk', {
+        method: 'POST',
+        body: JSON.stringify({ entries: formattedEntries }),
+      });
+      return Array.isArray(res) ? res.map(mapBackendStockMovementToFrontend) : [];
+    } catch (bulkErr) {
+      console.warn('/stock-movements/bulk failed, falling back to sequential addStockMovement:', bulkErr);
+      const results: StockMovement[] = [];
+      for (const entry of entries) {
+        const movement = await this.addStockMovement(
+          entry.productId,
+          entry.quantity,
+          'STOCK_IN',
+          entry.note || 'Toplu stok girişi',
+          createdBy,
+          role
+        );
+        results.push(movement);
+      }
+      return results;
+    }
   },
 
   // ==================== ADMIN: PRICE MANAGEMENT ====================

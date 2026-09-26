@@ -56,6 +56,11 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
 
     setTorchOn(false);
     setHasTorch(false);
+
+    if (typeof document !== 'undefined') {
+      document.body.style.overflow = '';
+      document.body.style.pointerEvents = '';
+    }
   }, []);
 
   // Initialize camera and scanner
@@ -137,10 +142,10 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
               // Immediate stop to prevent duplicate multi-scans
               setTimeout(() => {
                 stopCamera();
+                onClose();
                 const notify = onDetected || onScan;
                 if (notify) notify(code.trim());
-                onClose();
-              }, 150);
+              }, 100);
             }
           }
         });
@@ -151,16 +156,16 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
 
       const errName = err?.name || '';
       if (errName === 'NotAllowedError' || errName === 'PermissionDeniedError') {
-        setErrorMsg('Kamera erişim izni reddedildi. Lütfen tarayıcı ayarlarından kamera iznini verip tekrar deneyin.');
+        setErrorMsg('Kamera izni verilmedi. Barkodu elle girebilirsiniz.');
       } else if (errName === 'NotFoundError' || errName === 'DevicesNotFoundError') {
         setErrorMsg('Kamera bulunamadı. Lütfen cihazınızda kullanılabilir bir kamera olduğundan emin olun.');
       } else if (errName === 'NotReadableError' || errName === 'TrackStartError') {
         setErrorMsg('Kamera şu anda başka bir uygulama tarafından kullanılıyor olabilir.');
       } else {
-        setErrorMsg(err?.message || 'Kamera açılırken bir hata oluştu. Lütfen izinleri ve bağlantıyı kontrol edin.');
+        setErrorMsg('Kamera başlatılamadı.');
       }
     }
-  }, [onScan, onClose, stopCamera]);
+  }, [onScan, onDetected, onClose, stopCamera]);
 
   // Flashlight toggle
   const toggleTorch = async () => {
@@ -188,6 +193,10 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
 
     return () => {
       stopCamera();
+      if (typeof document !== 'undefined') {
+        document.body.style.overflow = '';
+        document.body.style.pointerEvents = '';
+      }
     };
   }, [isOpen, startCamera, stopCamera]);
 

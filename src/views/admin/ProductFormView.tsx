@@ -8,8 +8,10 @@ import {
   X,
   AlertTriangle,
   Star,
-  Image
+  Image,
+  Camera
 } from 'lucide-react';
+import { BarcodeScanner } from '../../components/BarcodeScanner';
 
 interface Props {
   productId: string | number | null;
@@ -23,6 +25,7 @@ export const ProductFormView: React.FC<Props> = ({ productId, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(isEditing);
   const [error, setError] = useState('');
+  const [showScanner, setShowScanner] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   
   const [formData, setFormData] = useState({
@@ -235,14 +238,26 @@ export const ProductFormView: React.FC<Props> = ({ productId, onClose }) => {
           <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">
             Barkod <span className="text-red-500">*</span>
           </label>
-          <input
-            type="text"
-            name="barcode"
-            value={formData.barcode}
-            onChange={handleInputChange}
-            placeholder="Örn: 869000100001"
-            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-zeytin-500 focus:outline-none text-base sm:text-sm font-mono font-bold transition-colors bg-gray-50 focus:bg-white"
-          />
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              name="barcode"
+              value={formData.barcode}
+              onChange={handleInputChange}
+              placeholder="Örn: 869000100001"
+              className="flex-1 min-w-0 px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-zeytin-500 focus:outline-none text-base sm:text-sm font-mono font-bold transition-colors bg-gray-50 focus:bg-white"
+            />
+            <button
+              type="button"
+              onClick={() => setShowScanner(true)}
+              className="shrink-0 min-h-[46px] min-w-[46px] px-3.5 bg-zeytin-600 hover:bg-zeytin-500 active:bg-zeytin-700 text-white rounded-xl flex items-center justify-center gap-1.5 shadow-xs active:scale-95 transition-all cursor-pointer font-bold text-xs"
+              title="Kamera ile Barkod Oku"
+              aria-label="Kamera ile Barkod Oku"
+            >
+              <Camera className="w-5 h-5" />
+              <span className="hidden sm:inline">Kamera</span>
+            </button>
+          </div>
         </div>
 
         {/* 3. Kategori */}
@@ -428,6 +443,23 @@ export const ProductFormView: React.FC<Props> = ({ productId, onClose }) => {
           </button>
         </div>
       </form>
+
+      {/* Kamera Barkod Okuyucu Modalı */}
+      {showScanner && (
+        <BarcodeScanner
+          isOpen={showScanner}
+          onClose={() => setShowScanner(false)}
+          onDetected={(barcode) => {
+            setFormData((prev) => ({
+              ...prev,
+              barcode: barcode.trim(),
+            }));
+            setShowScanner(false);
+          }}
+          title="BARKOD OKUTUN"
+          description="Ürün barkodunu kameraya gösterin"
+        />
+      )}
     </div>
   );
 };
