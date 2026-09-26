@@ -67,6 +67,13 @@ const INITIAL_KASAS: Record<KasaId, KasaState> = {
 
 const STORAGE_KASAS_KEY = 'zeytin_pos_kasas_state';
 
+export const selectFavoriteProducts = (products: Product[]): Product[] => {
+  return products
+    .filter(product => product.isQuickProduct && product.isActive !== false && Boolean(product.imageUrl?.trim()))
+    .sort((a, b) => (a.quickOrder || 99) - (b.quickOrder || 99))
+    .slice(0, 10);
+};
+
 export const PosProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { cashier } = useAuth();
   const [activeKasa, setActiveKasa] = useState<KasaId>(1);
@@ -157,10 +164,7 @@ export const PosProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [currentKasa.paymentType, currentKasa.receivedAmount, totalAmount]);
 
   const quickProducts = useMemo(() => {
-    return products
-      .filter(p => p.isQuickProduct)
-      .sort((a, b) => (a.quickOrder || 99) - (b.quickOrder || 99))
-      .slice(0, 10);
+    return selectFavoriteProducts(products);
   }, [products]);
 
   const setCustomerForActiveKasa = useCallback((customer: Customer | null) => {

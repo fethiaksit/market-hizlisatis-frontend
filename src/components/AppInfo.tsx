@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ChevronDown, ChevronUp, Info, X } from 'lucide-react';
+import { Info, X } from 'lucide-react';
 
 const FEATURES = [
   'Barkod ile ürün ekleme',
@@ -11,16 +11,8 @@ const FEATURES = [
   'ZeytinERP ile senkronizasyon',
 ];
 
-const SHORTCUTS = [
-  ['F1 - F5', 'Kasa 1-5 geçişi'],
-  ['F8 / F9 / F7', 'Nakit / Kart / Cari'],
-  ['F10', 'Ürün kataloğu'],
-  ['F12 / Enter', 'Satışı tamamla'],
-];
-
 export const AppInfo: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [showShortcuts, setShowShortcuts] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -35,7 +27,6 @@ export const AppInfo: React.FC = () => {
 
   const close = () => {
     setIsOpen(false);
-    setShowShortcuts(false);
   };
 
   return (
@@ -96,34 +87,6 @@ export const AppInfo: React.FC = () => {
                 ))}
               </ul>
 
-              <div className="border-t border-gray-100 pt-3">
-                <button
-                  type="button"
-                  onClick={() => setShowShortcuts((current) => !current)}
-                  aria-expanded={showShortcuts}
-                  className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left text-xs font-bold text-gray-600 transition-colors hover:bg-gray-50 hover:text-zeytin-700"
-                >
-                  <span>{showShortcuts ? 'Klavye Kısayollarını Gizle' : 'Klavye Kısayollarını Göster'}</span>
-                  {showShortcuts ? (
-                    <ChevronUp className="h-3.5 w-3.5" aria-hidden="true" />
-                  ) : (
-                    <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
-                  )}
-                </button>
-
-                {showShortcuts && (
-                  <div className="mt-2 grid grid-cols-1 gap-1.5 sm:grid-cols-2">
-                    {SHORTCUTS.map(([keys, description]) => (
-                      <div key={keys} className="rounded-lg border border-gray-100 bg-gray-50 px-2.5 py-2">
-                        <span className="block font-mono text-[10px] font-black text-zeytin-700">
-                          {keys}
-                        </span>
-                        <span className="text-[10px] text-gray-500">{description}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
             </div>
 
             <div className="flex items-center justify-between rounded-b-2xl bg-gray-50 px-5 py-2.5 text-[10px] text-gray-400">

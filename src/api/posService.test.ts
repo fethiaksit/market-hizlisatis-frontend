@@ -112,4 +112,55 @@ describe('posService ürün fiyatları', () => {
       is_active: true,
     });
   });
+
+  it('API favori alanlarını hızlı satış favorisi olarak eşler', async () => {
+    localStorage.setItem('zeytin_pos_token', 'test-token');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify([
+            {
+              id: 7,
+              name: 'Coca-Cola',
+              barcode: '8690000000007',
+              sale_price: 45,
+              stock: 12,
+              image_url: '/uploads/coca-cola.jpg',
+              is_favorite: true,
+              is_bestseller: false,
+              is_active: true,
+            },
+            {
+              id: 8,
+              name: 'Su',
+              barcode: '8690000000008',
+              sale_price: 10,
+              stock: 0,
+              image_url: '/uploads/su.jpg',
+              is_favorite: false,
+              is_bestseller: true,
+              is_active: true,
+            },
+          ]),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        ),
+      ),
+    );
+
+    const products = await posService.getAllProducts();
+
+    expect(products).toEqual([
+      expect.objectContaining({
+        id: 7,
+        isQuickProduct: true,
+        imageUrl: '/uploads/coca-cola.jpg',
+      }),
+      expect.objectContaining({
+        id: 8,
+        isQuickProduct: true,
+        imageUrl: '/uploads/su.jpg',
+      }),
+    ]);
+  });
 });

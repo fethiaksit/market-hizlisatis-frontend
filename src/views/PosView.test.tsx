@@ -48,8 +48,7 @@ describe('PosView uygulama bilgisi', () => {
     expect(screen.getByText('Barkod ile ürün ekleme')).toBeInTheDocument();
     expect(screen.queryByText('F1 - F5')).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Klavye Kısayollarını Göster' }));
-    expect(screen.getByText('F1 - F5')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /klavye kısayolları/i })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Kapat' }));
     expect(screen.queryByRole('dialog', { name: 'ZeytinERP Hızlı Satış' })).not.toBeInTheDocument();

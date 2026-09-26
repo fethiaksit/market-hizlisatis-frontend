@@ -78,7 +78,7 @@ export const PaymentPanel: React.FC<PaymentPanelProps> = ({ onSaleCompleted }) =
           }`}
         >
           <Banknote className="w-3.5 h-3.5" />
-          <span>NAKİT (F8)</span>
+          <span>NAKİT</span>
         </button>
 
         <button
@@ -91,7 +91,7 @@ export const PaymentPanel: React.FC<PaymentPanelProps> = ({ onSaleCompleted }) =
           }`}
         >
           <CreditCard className="w-3.5 h-3.5" />
-          <span>KART (F9)</span>
+          <span>KART</span>
         </button>
 
         <button
@@ -104,7 +104,7 @@ export const PaymentPanel: React.FC<PaymentPanelProps> = ({ onSaleCompleted }) =
           }`}
         >
           <UserCheck className="w-3.5 h-3.5" />
-          <span>CARİ (F7)</span>
+          <span>CARİ</span>
         </button>
       </div>
 
@@ -227,7 +227,7 @@ export const PaymentPanel: React.FC<PaymentPanelProps> = ({ onSaleCompleted }) =
         ) : (
           <>
             <CheckCircle2 className="w-5 h-5 text-zeytin-200" />
-            <span>SATIŞI TAMAMLA (F12)</span>
+            <span>SATIŞI TAMAMLA</span>
           </>
         )}
       </button>

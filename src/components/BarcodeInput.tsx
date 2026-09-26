@@ -159,18 +159,15 @@ export const BarcodeInput: React.FC<BarcodeInputProps> = ({ inputRef }) => {
           )}
         </button>
 
-        {/* "ÜRÜNLER" Button (F10) */}
+        {/* Ürün kataloğu */}
         <button
           type="button"
           onClick={() => setProductsModalOpen(true)}
           className="bg-emerald-800 hover:bg-emerald-900 active:bg-emerald-950 text-white font-extrabold px-3 sm:px-3.5 py-2 rounded-xl text-xs sm:text-sm transition-all shadow-xs flex items-center space-x-1.5 shrink-0 cursor-pointer border border-emerald-700 hover:scale-[1.01] h-10 sm:h-11"
-          title="Tüm Ürünler Kataloğunu Aç (F10)"
+          title="Tüm Ürünler Kataloğunu Aç"
         >
           <LayoutGrid className="w-4 h-4 text-emerald-200" />
           <span className="tracking-wide hidden xs:inline">ÜRÜNLER</span>
-          <span className="bg-emerald-950/60 text-emerald-200 text-[10px] px-1.5 py-0.5 rounded font-mono">
-            F10
-          </span>
         </button>
       </div>
 

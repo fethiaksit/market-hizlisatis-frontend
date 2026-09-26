@@ -146,6 +146,8 @@ type BackendProduct = {
   purchase_price?: number;
   stock?: number;
   category?: string;
+  is_favorite?: boolean;
+  isFavorite?: boolean;
   is_bestseller?: boolean;
   isQuickProduct?: boolean;
   bestseller_order?: number;
@@ -174,7 +176,7 @@ function mapBackendProduct(product: BackendProduct): Product {
     stock: Number(product.stock ?? 0),
     unit: 'Adet',
     category: product.category || '',
-    isQuickProduct: Boolean(product.is_bestseller ?? product.isQuickProduct),
+    isQuickProduct: Boolean(product.is_favorite || product.isFavorite || product.is_bestseller || product.isQuickProduct),
     quickOrder: product.bestseller_order ?? product.quickOrder ?? undefined,
     imageUrl: img,
     image: img,
