@@ -163,4 +163,13 @@ describe('posService ürün fiyatları', () => {
       }),
     ]);
   });
+  it('görsel ve favori gönderilmeyen güncellemede mevcut değerleri silmez', async () => {
+    const spy = vi.fn().mockResolvedValue(new Response(JSON.stringify({ id: 42, name: 'Canga' })));
+    vi.stubGlobal('fetch', spy);
+    await posService.updateProduct(42, { name: 'Canga', price: 25 }, 'Admin', 'admin');
+    const body = JSON.parse(spy.mock.calls[0][1].body);
+    expect(body).not.toHaveProperty('image_url');
+    expect(body).not.toHaveProperty('is_bestseller');
+  });
+
 });

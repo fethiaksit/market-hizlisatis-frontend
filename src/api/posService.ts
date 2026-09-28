@@ -1228,8 +1228,8 @@ export const posService = {
         is_active: true,
         brand: '',
         description: '',
-        image_url: data.imageUrl !== undefined ? data.imageUrl : '',
-        is_bestseller: data.isQuickProduct !== undefined ? data.isQuickProduct : false,
+        image_url: data.imageUrl,
+        is_bestseller: data.isQuickProduct,
         bestseller_order: 0,
       }),
     });
