@@ -25,6 +25,7 @@ export const ProductFormView: React.FC<Props> = ({ productId, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(isEditing);
   const [error, setError] = useState('');
+  const [previewError, setPreviewError] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   
@@ -85,6 +86,7 @@ export const ProductFormView: React.FC<Props> = ({ productId, onClose }) => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
+    if (name === 'imageUrl') setPreviewError(false);
     if (type === 'checkbox') {
       const checked = (e.target as HTMLInputElement).checked;
       setFormData(prev => ({ ...prev, [name]: checked }));
@@ -405,21 +407,23 @@ export const ProductFormView: React.FC<Props> = ({ productId, onClose }) => {
             {/* Live image preview */}
             <div className="w-14 h-14 rounded-2xl bg-gray-100 border border-gray-200 flex items-center justify-center overflow-hidden shrink-0 shadow-inner">
               {formData.imageUrl.trim() ? (
-                <img 
+                <img
+                  key={formData.imageUrl.trim()}
+                  referrerPolicy="no-referrer"
                   src={formData.imageUrl.trim()} 
                   alt="Önizleme"
                   className="w-full h-full object-cover"
-                  onError={(e) => {
-                    (e.target as HTMLElement).style.display = 'none';
-                  }}
+                  onError={() => setPreviewError(true)}
+                  onLoad={() => setPreviewError(false)}
                 />
               ) : (
                 <Image className="w-6 h-6 text-gray-400" />
               )}
             </div>
           </div>
+          {previewError && <p role="status" className="text-xs text-amber-700">Önizleme yüklenemedi. Doğrudan görsel adresini kontrol edin; kaydederken sunucudan indirme denenecek.</p>}
           <p className="text-[11px] text-gray-400">
-            Ürün görsel URL'si girildiğinde kalıcı olarak kaydedilir ve POS ekranında gösterilir.
+            Kaydettiğinizde görsel sunucuya indirilir. İndirilemezse ürün kaydedilmez ve hata gösterilir.
           </p>
         </div>
 
