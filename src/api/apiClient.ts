@@ -48,7 +48,7 @@ function normalizeServerMessage(value: unknown): string | null {
   const turkishHints = [
     'lütfen', 'bulunamad', 'zorunlu', 'geçersiz', 'başarısız', 'yetki',
     'kayıtlı', 'telefon', 'müşteri', 'ürün', 'işlem', 'oturum', 'şifre',
-    'kullanıcı', 'tutar', 'stok', 'ödeme', 'satış', 'cari'
+    'kullanıcı', 'tutar', 'stok', 'ödeme', 'satış', 'cari', 'görsel'
   ];
   if (turkishHints.some(hint => lower.includes(hint))) return raw;
 

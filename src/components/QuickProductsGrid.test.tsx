@@ -16,7 +16,7 @@ const favorite: Product = {
   stock: 8,
   unit: 'Adet',
   isQuickProduct: true,
-  imageUrl: '/uploads/gofret.jpg',
+  imageUrl: '/api/product-images/product-1-0123456789abcdef0123456789abcdef.jpg',
   isActive: true,
 };
 
@@ -26,7 +26,7 @@ const outOfStockFavorite: Product = {
   name: 'Su',
   price: 10,
   stock: 0,
-  imageUrl: '/uploads/su.jpg',
+  imageUrl: '/api/product-images/product-2-0123456789abcdef0123456789abcdef.jpg',
 };
 
 describe('QuickProductsGrid', () => {
@@ -50,7 +50,7 @@ describe('QuickProductsGrid', () => {
     render(<QuickProductsGrid />);
 
     const image = screen.getByRole('img', { name: 'Ülker Gofret' });
-    expect(image).toHaveAttribute('src', '/uploads/gofret.jpg');
+    expect(image).toHaveAttribute('src', favorite.imageUrl);
     expect(image).toHaveAttribute('loading', 'lazy');
     expect(screen.getByText('₺25,00')).toBeInTheDocument();
 
@@ -81,5 +81,11 @@ describe('QuickProductsGrid', () => {
     render(<QuickProductsGrid />);
 
     expect(screen.getByText('Henüz favori ürün eklenmemiş.')).toBeInTheDocument();
+  });
+
+  it('does not request an external image for a legacy favorite', () => {
+    vi.mocked(usePos).mockReturnValue({quickProducts: [{...favorite, imageUrl: 'https://example.com/old.jpg'}], addToCart, showToast} as ReturnType<typeof usePos>);
+    render(<QuickProductsGrid />);
+    expect(screen.queryByRole('img', {name: favorite.name})).not.toBeInTheDocument();
   });
 });

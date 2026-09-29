@@ -20,7 +20,7 @@ export const QuickProductsGrid: React.FC<QuickProductsGridProps> = ({ onProductC
         product =>
           product.isQuickProduct &&
           product.isActive !== false &&
-          Boolean(product.imageUrl?.trim())
+          Boolean(product.imageUrl?.startsWith('/api/product-images/'))
       ),
     [quickProducts]
   );

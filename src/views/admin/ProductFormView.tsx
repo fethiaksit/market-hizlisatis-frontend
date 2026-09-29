@@ -23,6 +23,11 @@ export const ProductFormView: React.FC<Props> = ({ productId, onClose }) => {
   const isEditing = !!productId;
 
   const [loading, setLoading] = useState(false);
+  const [imageLoading, setImageLoading] = useState(false);
+  const [imageNotice, setImageNotice] = useState('');
+  const [savedProductId, setSavedProductId] = useState<string | number | null>(productId);
+  const [savedSourceUrl, setSavedSourceUrl] = useState('');
+  const [savedFavorite, setSavedFavorite] = useState(false);
   const [initialLoading, setInitialLoading] = useState(isEditing);
   const [error, setError] = useState('');
   const [showScanner, setShowScanner] = useState(false);
@@ -38,6 +43,7 @@ export const ProductFormView: React.FC<Props> = ({ productId, onClose }) => {
     unit: 'Adet',
     isQuickProduct: false,
     imageUrl: '',
+    imageSourceUrl: '',
   });
 
   useEffect(() => {
@@ -74,7 +80,10 @@ export const ProductFormView: React.FC<Props> = ({ productId, onClose }) => {
           unit: product.unit || 'Adet',
           isQuickProduct: Boolean(product.isQuickProduct),
           imageUrl: product.imageUrl || '',
+          imageSourceUrl: product.imageSourceUrl || '',
         });
+        setSavedSourceUrl(product.imageSourceUrl || '');
+        setSavedFavorite(Boolean(product.isQuickProduct));
       } else {
         setError('Düzenlenecek ürün bulunamadı.');
       }
@@ -125,16 +134,17 @@ export const ProductFormView: React.FC<Props> = ({ productId, onClose }) => {
     }
 
     // Favori ürün görsel kuralı (Kesin Kural: Section 7 & 13)
-    if (formData.isQuickProduct && !formData.imageUrl.trim()) {
+    if (formData.isQuickProduct && !formData.imageUrl.trim() && !formData.imageSourceUrl.trim()) {
       setError('Favori ürün için ürün görseli gereklidir.');
       return;
     }
 
     setLoading(true);
     try {
-      if (isEditing) {
+      let id = savedProductId;
+      if (id) {
         await posService.updateProduct(
-          productId!,
+          id,
           {
             name: formData.name.trim(),
             barcode: formData.barcode.trim(),
@@ -142,15 +152,13 @@ export const ProductFormView: React.FC<Props> = ({ productId, onClose }) => {
             purchasePrice: purchasePriceNum,
             price: priceNum,
             unit: formData.unit,
-            imageUrl: formData.imageUrl.trim(),
-            isQuickProduct: formData.isQuickProduct,
           },
           cashier?.name || 'Admin',
           cashier?.role
         );
       } else {
         const stockNum = parseInt(formData.stock, 10);
-        await posService.createProduct(
+        const created = await posService.createProduct(
           {
             name: formData.name.trim(),
             barcode: formData.barcode.trim(),
@@ -159,18 +167,44 @@ export const ProductFormView: React.FC<Props> = ({ productId, onClose }) => {
             price: priceNum,
             stock: isNaN(stockNum) ? 0 : stockNum,
             unit: formData.unit,
-            imageUrl: formData.imageUrl.trim(),
-            isQuickProduct: formData.isQuickProduct,
           },
           cashier?.name || 'Admin',
           cashier?.role
         );
+        id = created.id;
+        setSavedProductId(id);
+      }
+      if (formData.imageSourceUrl.trim() && (formData.imageSourceUrl.trim() !== savedSourceUrl || !formData.imageUrl.startsWith('/api/product-images/'))) {
+        const imported = await posService.importProductImage(id!, formData.imageSourceUrl.trim(), cashier?.role);
+        setFormData(prev => ({...prev, imageUrl: imported.imageUrl || ''}));
+        setSavedSourceUrl(imported.imageSourceUrl || formData.imageSourceUrl.trim());
+      }
+      if (formData.isQuickProduct !== savedFavorite) {
+        await posService.setProductFavorite(id!, formData.isQuickProduct, cashier?.role);
+        setSavedFavorite(formData.isQuickProduct);
       }
       onClose();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Kaydetme işlemi başarısız oldu.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleImportImage = async () => {
+    if (!savedProductId) return;
+    setError('');
+    setImageNotice('');
+    setImageLoading(true);
+    try {
+      const imported = await posService.importProductImage(savedProductId, formData.imageSourceUrl.trim(), cashier?.role);
+      setFormData(prev => ({...prev, imageUrl: imported.imageUrl || ''}));
+      setSavedSourceUrl(imported.imageSourceUrl || formData.imageSourceUrl.trim());
+      setImageNotice('Görsel sunucuya kaydedildi.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Görsel indirilemedi.');
+    } finally {
+      setImageLoading(false);
     }
   };
 
@@ -383,7 +417,7 @@ export const ProductFormView: React.FC<Props> = ({ productId, onClose }) => {
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <label className="block text-xs font-bold text-gray-700 uppercase">
-              Ürün Görseli / Görsel URL {formData.isQuickProduct && <span className="text-red-500 font-bold">* (Favori için zorunlu)</span>}
+              Görsel URL {formData.isQuickProduct && <span className="text-red-500 font-bold">* (Favori için zorunlu)</span>}
             </label>
             {formData.isQuickProduct && (
               <span className="text-[10px] text-amber-800 font-bold bg-amber-100 px-2 py-0.5 rounded-full">
@@ -395,18 +429,22 @@ export const ProductFormView: React.FC<Props> = ({ productId, onClose }) => {
           <div className="flex items-center gap-3">
             <input
               type="text"
-              name="imageUrl"
-              value={formData.imageUrl}
+              name="imageSourceUrl"
+              value={formData.imageSourceUrl}
               onChange={handleInputChange}
-              placeholder="https://... veya server görsel yolu"
+              placeholder="https://ornek.com/urun.jpg"
               className="flex-1 px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-zeytin-500 focus:outline-none text-base sm:text-sm transition-colors bg-gray-50 focus:bg-white"
             />
+
+            <button type="button" onClick={handleImportImage} disabled={!savedProductId || !formData.imageSourceUrl.trim() || imageLoading} className="px-3 py-2 rounded-xl bg-zeytin-600 text-white disabled:opacity-50 text-xs font-bold">
+              {imageLoading ? 'İndiriliyor...' : 'Görseli İndir ve Kaydet'}
+            </button>
 
             {/* Live image preview */}
             <div className="w-14 h-14 rounded-2xl bg-gray-100 border border-gray-200 flex items-center justify-center overflow-hidden shrink-0 shadow-inner">
               {formData.imageUrl.trim() ? (
                 <img 
-                  src={formData.imageUrl.trim()} 
+                  src={formData.imageUrl.trim()}
                   alt="Önizleme"
                   className="w-full h-full object-cover"
                   onError={(e) => {
@@ -419,8 +457,9 @@ export const ProductFormView: React.FC<Props> = ({ productId, onClose }) => {
             </div>
           </div>
           <p className="text-[11px] text-gray-400">
-            Ürün görsel URL'si girildiğinde kalıcı olarak kaydedilir ve POS ekranında gösterilir.
+            {savedProductId ? 'Görseli sunucuya kaydetmek için düğmeye basın veya ürünü kaydedin.' : 'Yeni üründe URL, Ürünü Kaydet düğmesine bastığınızda sunucuya indirilir.'}
           </p>
+          {imageNotice && <p role="status" className="text-xs text-green-700">{imageNotice}</p>}
         </div>
 
         {/* 9. Büyük Kaydet Butonu */}

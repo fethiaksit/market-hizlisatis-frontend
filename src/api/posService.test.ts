@@ -8,6 +8,19 @@ describe('posService ürün fiyatları', () => {
     vi.unstubAllGlobals();
   });
 
+  it('görsel URL kaynağını backend indirme endpointine yollar ve yerel yolu kullanır', async () => {
+    localStorage.setItem('zeytin_pos_token', 'test-token');
+    const fetchSpy = vi.fn().mockResolvedValue(new Response(JSON.stringify({success: true, data: {
+      id: 42, name: 'Canga', image_url: '/api/product-images/product-42-0123456789abcdef0123456789abcdef.jpg',
+      image_source_url: 'https://example.com/canga.jpg', sale_price: '25', stock: '3', is_bestseller: true,
+    }}), {status: 200, headers: {'Content-Type': 'application/json'}}));
+    vi.stubGlobal('fetch', fetchSpy);
+    const product = await posService.importProductImage(42, 'https://example.com/canga.jpg', 'admin');
+    expect(fetchSpy).toHaveBeenCalledWith('/api/products/42/image-from-url', expect.objectContaining({method: 'POST', body: JSON.stringify({url: 'https://example.com/canga.jpg'})}));
+    expect(product.imageUrl).toBe('/api/product-images/product-42-0123456789abcdef0123456789abcdef.jpg');
+    expect(product.imageSourceUrl).toBe('https://example.com/canga.jpg');
+  });
+
   it('yeni ürün fiyatlarını ZeytinERP alan adlarıyla gönderir', async () => {
     localStorage.setItem('zeytin_pos_token', 'test-token');
     const fetchSpy = vi.fn().mockResolvedValue(
