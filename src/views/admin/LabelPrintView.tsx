@@ -1,45 +1,19 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Printer, Search, Minus, Plus, Trash2 } from 'lucide-react';
+import { Printer, Download, Search, Minus, Plus, Trash2 } from 'lucide-react';
 import { posService } from '../../api/posService';
 import { Product } from '../../types/pos';
+import { buildZebraLabels } from '../../utils/zebraLabel';
 
-type LabelSize = '50x30' | '40x30' | '50x40';
+type LabelSize = '80x40' | '50x30' | '40x30' | '50x40';
 
 const money = (value: number) =>
   new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(Number(value || 0));
-
-const barcodeBars = (value: string) => {
-  const text = String(value || '').trim();
-  if (!text) return [];
-  const modules: number[] = [2, 1, 2, 1, 1, 2];
-  for (const ch of text) {
-    const code = ch.charCodeAt(0);
-    for (let bit = 0; bit < 7; bit += 1) modules.push(((code >> bit) & 1) ? 3 : 1, 1);
-  }
-  modules.push(3, 1, 1, 2, 2, 1);
-  return modules;
-};
-
-const BarcodeGraphic: React.FC<{ value: string }> = ({ value }) => {
-  const modules = barcodeBars(value);
-  const total = modules.reduce((sum, width) => sum + width, 0) || 1;
-  let cursor = 0;
-  return (
-    <svg viewBox={`0 0 ${total} 42`} preserveAspectRatio="none" className="w-full h-9" aria-label={`Barkod ${value}`}>
-      {modules.map((width, index) => {
-        const x = cursor;
-        cursor += width;
-        return index % 2 === 0 ? <rect key={index} x={x} y="0" width={width} height="42" fill="black" /> : null;
-      })}
-    </svg>
-  );
-};
 
 export const LabelPrintView: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [query, setQuery] = useState('');
   const [counts, setCounts] = useState<Record<string, number>>({});
-  const [size, setSize] = useState<LabelSize>('50x30');
+  const [size, setSize] = useState<LabelSize>('80x40');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -76,7 +50,29 @@ export const LabelPrintView: React.FC = () => {
     window.print();
   };
 
+  const downloadZpl = () => {
+    if (!selected.length) {
+      window.alert('Yazdırmak için en az bir ürün seçin.');
+      return;
+    }
+    try {
+      const zpl = buildZebraLabels(selected.map((product) => ({ product, count: counts[String(product.id)] })));
+      const url = URL.createObjectURL(new Blob([zpl], { type: 'application/octet-stream' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'zebra-80x40-etiket.zpl';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setError('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'ZPL etiketi oluşturulamadı.');
+    }
+  };
+
   const dimensions: Record<LabelSize, string> = {
+    '80x40': 'w-[80mm] h-[40mm]',
     '50x30': 'w-[50mm] h-[30mm]',
     '40x30': 'w-[40mm] h-[30mm]',
     '50x40': 'w-[50mm] h-[40mm]',
@@ -86,11 +82,11 @@ export const LabelPrintView: React.FC = () => {
     <div className="min-h-full p-3 sm:p-5 lg:p-6">
       <style>{`
         @media print {
-          @page { margin: 0; }
+          @page { size: ${size.replace('x', 'mm ')}mm; margin: 0; }
           body * { visibility: hidden !important; }
           #zebra-label-sheet, #zebra-label-sheet * { visibility: visible !important; }
-          #zebra-label-sheet { position: absolute; left: 0; top: 0; display: flex !important; flex-wrap: wrap; gap: 0 !important; }
-          .zebra-label { border: 0 !important; break-inside: avoid; page-break-inside: avoid; }
+          #zebra-label-sheet { position: absolute; left: 0; top: 0; display: block !important; }
+          .zebra-label { border: 0 !important; break-inside: avoid; page-break-inside: avoid; break-after: page; }
         }
       `}</style>
 
@@ -100,10 +96,14 @@ export const LabelPrintView: React.FC = () => {
             <h1 className="text-xl font-black text-gray-900">Zebra Etiket Yazdır</h1>
             <p className="text-sm text-gray-500 mt-1">Ürün adı veya barkodla ara, adet seç ve fiyat etiketlerini yazdır.</p>
           </div>
-          <button onClick={print} className="min-h-[44px] px-4 py-2.5 rounded-xl bg-zeytin-700 hover:bg-zeytin-800 text-white font-bold flex items-center justify-center gap-2">
-            <Printer className="w-5 h-5" />
-            {selected.length ? `${selected.length} ürün yazdır` : 'Etiket Yazdır'}
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button onClick={print} className="min-h-[44px] px-4 py-2.5 rounded-xl border border-zeytin-700 text-zeytin-700 font-bold flex items-center justify-center gap-2">
+              <Printer className="w-5 h-5" /> Tarayıcıdan Yazdır
+            </button>
+            <button onClick={downloadZpl} disabled={size !== '80x40'} title={size !== '80x40' ? 'ZPL şablonu yalnızca 80 × 40 mm içindir.' : undefined} className="min-h-[44px] px-4 py-2.5 rounded-xl bg-zeytin-700 hover:bg-zeytin-800 disabled:opacity-50 text-white font-bold flex items-center justify-center gap-2">
+              <Download className="w-5 h-5" /> {selected.length ? `${selected.length} ürün için ZPL indir` : 'ZD220 ZPL İndir'}
+            </button>
+          </div>
         </div>
 
         <div className="p-4 sm:p-5 flex flex-col md:flex-row gap-3">
@@ -112,6 +112,7 @@ export const LabelPrintView: React.FC = () => {
             <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Ürün adı veya barkod ara..." className="w-full min-h-[44px] pl-10 pr-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-zeytin-500" autoFocus />
           </label>
           <select value={size} onChange={(e) => setSize(e.target.value as LabelSize)} className="min-h-[44px] px-3 rounded-xl border border-gray-300 bg-white font-semibold">
+            <option value="80x40">80 × 40 mm (ZD220)</option>
             <option value="50x30">50 × 30 mm</option>
             <option value="40x30">40 × 30 mm</option>
             <option value="50x40">50 × 40 mm</option>
@@ -120,6 +121,7 @@ export const LabelPrintView: React.FC = () => {
             <Trash2 className="w-4 h-4" /> Seçimi Temizle
           </button>
         </div>
+        <p className="px-4 sm:px-5 pb-3 text-xs text-gray-500">ZD220 için ZPL dosyasını yazıcıya ham ZPL gönderebilen Zebra aracıyla açın. Tarayıcı çıktısı yalnızca metin önizlemesidir; barkod basımı için ZPL kullanın.</p>
 
         {error && <div className="mx-4 sm:mx-5 mb-4 p-3 rounded-xl bg-red-50 text-red-700 text-sm font-semibold">{error}</div>}
         {loading ? <div className="p-8 text-center text-gray-500">Ürünler yükleniyor...</div> : (
@@ -153,13 +155,13 @@ export const LabelPrintView: React.FC = () => {
         )}
       </section>
 
-      <section id="zebra-label-sheet" className="hidden print:flex flex-wrap">
+      <section id="zebra-label-sheet" className="hidden print:block">
         {selected.flatMap((product) =>
           Array.from({ length: counts[String(product.id)] || 0 }, (_, index) => (
-            <article key={`${product.id}-${index}`} className={`zebra-label bg-white text-black border border-dashed border-gray-300 p-[2mm] flex flex-col items-center justify-center overflow-hidden ${dimensions[size]}`}>
-              <div className="w-full text-center text-[10pt] leading-tight font-black truncate">{product.name}</div>
-              <div className="text-[19pt] leading-none font-black my-[1mm]">{money(product.price)}</div>
-              {product.barcode ? <><BarcodeGraphic value={product.barcode} /><div className="font-mono text-[7pt] leading-none mt-[0.5mm]">{product.barcode}</div></> : <div className="text-[8pt] font-bold">BARKOD YOK</div>}
+            <article key={`${product.id}-${index}`} className={`zebra-label bg-white text-black border border-dashed border-gray-300 p-[3mm] flex flex-col items-center justify-center overflow-hidden ${dimensions[size]}`}>
+              <div className="w-full text-center text-[10pt] leading-tight font-black line-clamp-2">{product.name}</div>
+              <div className="text-[19pt] leading-none font-black my-[2mm]">{money(product.price)}</div>
+              <div className="font-mono text-[7pt] leading-none">{product.barcode || 'BARKOD YOK'}</div>
             </article>
           ))
         )}
