@@ -153,6 +153,7 @@ type BackendProduct = {
   bestseller_order?: number;
   quickOrder?: number;
   image_url?: string;
+  image_source_url?: string;
   imageUrl?: string;
   image?: string;
   is_active?: boolean;
@@ -179,6 +180,7 @@ function mapBackendProduct(product: BackendProduct): Product {
     isQuickProduct: Boolean(product.is_favorite || product.isFavorite || product.is_bestseller || product.isQuickProduct),
     quickOrder: product.bestseller_order ?? product.quickOrder ?? undefined,
     imageUrl: img,
+    imageSourceUrl: product.image_source_url || '',
     image: img,
     isActive: product.is_active ?? product.isActive ?? true,
     createdAt: product.created_at || product.createdAt,
@@ -1082,9 +1084,6 @@ export const posService = {
     isQuickProduct?: boolean;
   }, createdBy: string, role?: string): Promise<Product> {
     assertAdmin(role);
-    if (data.isQuickProduct && (!data.imageUrl || !data.imageUrl.trim())) {
-      throw new Error('Favori ürün için ürün görseli gereklidir.');
-    }
 
     if (isMockMode()) {
       await new Promise(r => setTimeout(r, 200));
@@ -1151,9 +1150,6 @@ export const posService = {
         is_active: true,
         brand: '',
         description: '',
-        image_url: data.imageUrl || '',
-        is_bestseller: Boolean(data.isQuickProduct),
-        bestseller_order: 0,
       }),
     });
     return mapBackendProduct(product);
@@ -1170,9 +1166,6 @@ export const posService = {
     isQuickProduct?: boolean;
   }, updatedBy: string, role?: string): Promise<Product> {
     assertAdmin(role);
-    if (data.isQuickProduct && (!data.imageUrl || !data.imageUrl.trim())) {
-      throw new Error('Favori ürün için ürün görseli gereklidir.');
-    }
 
     if (isMockMode()) {
       await new Promise(r => setTimeout(r, 150));
@@ -1228,9 +1221,6 @@ export const posService = {
         is_active: true,
         brand: '',
         description: '',
-        image_url: data.imageUrl !== undefined ? data.imageUrl : '',
-        is_bestseller: data.isQuickProduct !== undefined ? data.isQuickProduct : false,
-        bestseller_order: 0,
       }),
     });
     return mapBackendProduct(product);
@@ -1273,6 +1263,15 @@ export const posService = {
     const product = await apiFetch<BackendProduct>(`/products/${productId}/favorite`, {
       method: 'PUT',
       body: JSON.stringify({ isFavorite }),
+    });
+    return mapBackendProduct(product);
+  },
+
+  async importProductImage(productId: string | number, url: string, role?: string): Promise<Product> {
+    assertAdmin(role);
+    const product = await apiFetch<BackendProduct>(`/products/${productId}/image-from-url`, {
+      method: 'POST',
+      body: JSON.stringify({ url }),
     });
     return mapBackendProduct(product);
   },

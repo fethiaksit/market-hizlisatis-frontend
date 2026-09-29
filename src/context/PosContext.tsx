@@ -69,7 +69,7 @@ const STORAGE_KASAS_KEY = 'zeytin_pos_kasas_state';
 
 export const selectFavoriteProducts = (products: Product[]): Product[] => {
   return products
-    .filter(product => product.isQuickProduct && product.isActive !== false && Boolean(product.imageUrl?.trim()))
+    .filter(product => product.isQuickProduct && product.isActive !== false && Boolean(product.imageUrl?.startsWith('/api/product-images/')))
     .sort((a, b) => (a.quickOrder || 99) - (b.quickOrder || 99))
     .slice(0, 10);
 };

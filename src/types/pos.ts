@@ -18,6 +18,7 @@ export interface Product {
   isQuickProduct?: boolean;
   quickOrder?: number;
   imageUrl?: string;
+  imageSourceUrl?: string;
   image?: string;
   isActive: boolean;
   createdAt?: string;
