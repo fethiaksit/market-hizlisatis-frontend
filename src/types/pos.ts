@@ -237,7 +237,7 @@ export interface BulkImportResult {
   errors: BulkImportRowError[];
 }
 
-export type AdminPage = 'DASHBOARD' | 'CATEGORIES' | 'PRODUCTS' | 'ADD_PRODUCT' | 'STOCK_ENTRY' | 'BULK_IMPORT' | 'PDF_IMPORT' | 'PRICE_MANAGEMENT' | 'EMPLOYEES' | 'CUSTOMERS';
+export type AdminPage = 'DASHBOARD' | 'CATEGORIES' | 'PRODUCTS' | 'ADD_PRODUCT' | 'STOCK_ENTRY' | 'BULK_IMPORT' | 'PDF_IMPORT' | 'PRICE_MANAGEMENT' | 'EMPLOYEES' | 'CUSTOMERS' | 'LABEL_PRINT';
 
 
 // ==================== INVOICE & PDF IMPORT TYPES ====================
