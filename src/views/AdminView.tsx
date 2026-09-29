@@ -10,6 +10,7 @@ import {
   FileUp, 
   FileText, 
   Tag, 
+  Printer,
   LogOut, 
   Store,
   FileSpreadsheet,
@@ -29,6 +30,7 @@ import { PriceManagementView } from './admin/PriceManagementView';
 import { CategoriesView } from './admin/CategoriesView';
 import { EmployeesManagementView } from './admin/EmployeesManagementView';
 import { CustomersManagementView } from './admin/CustomersManagementView';
+import { LabelPrintView } from './admin/LabelPrintView';
 
 const PAGE_TITLES: Record<AdminPage, string> = {
   DASHBOARD: 'Özet Dashboard',
@@ -41,6 +43,7 @@ const PAGE_TITLES: Record<AdminPage, string> = {
   EMPLOYEES: 'Personel Yönetimi',
   PDF_IMPORT: "PDF'den Ürün Aktar",
   BULK_IMPORT: "CSV'den Ürün Aktar",
+  LABEL_PRINT: 'Etiket Yazdır',
 };
 
 export const AdminView: React.FC = () => {
@@ -123,6 +126,16 @@ export const AdminView: React.FC = () => {
       >
         <Boxes className="w-5 h-5 text-teal-400" />
         <span>Stok Girişi</span>
+      </button>
+
+      <button
+        onClick={() => handleSelectPage('LABEL_PRINT')}
+        className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all min-h-[44px] cursor-pointer ${
+          activePage === 'LABEL_PRINT' ? 'bg-zeytin-800 text-white font-bold' : 'text-zeytin-200 hover:bg-zeytin-800/50'
+        }`}
+      >
+        <Printer className="w-5 h-5 text-cyan-400" />
+        <span>Etiket Yazdır</span>
       </button>
 
       <button
@@ -359,6 +372,9 @@ export const AdminView: React.FC = () => {
         )}
         {activePage === 'PRICE_MANAGEMENT' && (
           <PriceManagementView />
+        )}
+        {activePage === 'LABEL_PRINT' && (
+          <LabelPrintView />
         )}
         {activePage === 'EMPLOYEES' && (
           <EmployeesManagementView />
